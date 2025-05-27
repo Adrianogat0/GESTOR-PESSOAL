@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Contas a Pagar - Gestor Financeiro{% endblock %}
+
+{% block content %}
+<div class="sidebar">
+    <h2><i class="fas fa-chart-line"></i> Gestor Financeiro</h2>
+    <ul>
+        <li><a href="/dashboard"><i class="fas fa-home"></i> Visão Geral</a></li>
+        <li><a href="/contas_receber"><i class="fas fa-arrow-up"></i> Contas a Receber</a></li>
+        <li><a href="/contas_pagar" class="active"><i class="fas fa-arrow-down"></i> Contas a Pagar</a></li>
+        <li><a href="/carteira"><i class="fas fa-wallet"></i> Carteira</a></li>
+        <li><a href="/contatos"><i class="fas fa-users"></i> Contatos</a></li>
+        <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Sair</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div class="page-header">
+        <h1><i class="fas fa-arrow-down"></i> Contas a Pagar</h1>
+        <p>Gerencie suas despesas e compromissos financeiros</p>
+    </div>
+
+    <div class="form-container">
+        <h3>Nova Conta a Pagar</h3>
+        <form action="/contas_pagar" method="POST" class="financial-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="descricao">Descrição</label>
+                    <input type="text" id="descricao" name="descricao" placeholder="Descrição da despesa" required>
+                </div>
+                <div class="form-group">
+                    <label for="valor">Valor</label>
+                    <input type="number" step="0.01" id="valor" name="valor" placeholder="0,00" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="data_lancamento">Data de Lançamento</label>
+                    <input type="date" id="data_lancamento" name="data_lancamento" required>
+                </div>
+                <div class="form-group">
+                    <label for="data_vencimento">Data de Vencimento</label>
+                    <input type="date" id="data_vencimento" name="data_vencimento" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="contato">Fornecedor</label>
+                    <input type="text" id="contato" name="contato" placeholder="Nome do fornecedor">
+                </div>
+                <div class="form-group">
+                    <label for="observacoes">Observações</label>
+                    <input type="text" id="observacoes" name="observacoes" placeholder="Observações adicionais">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                <i class="fas fa-plus"></i> Incluir Conta
+            </button>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <h3>Contas Registradas</h3>
+        
+        <!-- Barra de Pesquisa -->
+        <div class="search-container">
+            <form method="GET" class="search-form">
+                <div class="search-row">
+                    <div class="search-group">
+                        <input type="text" name="search_descricao" placeholder="Buscar por descrição..." 
+                               value="{{ search_descricao }}" class="search-input">
+                    </div>
+                    <div class="search-group">
+                        <input type="text" name="search_fornecedor" placeholder="Buscar por fornecedor..." 
+                               value="{{ search_fornecedor }}" class="search-input">
+                    </div>
+                    <div class="search-group">
+                        <input type="date" name="data_inicio" placeholder="Data início" 
+                               value="{{ data_inicio }}" class="search-input">
+                    </div>
+                    <div class="search-group">
+                        <input type="date" name="data_fim" placeholder="Data fim" 
+                               value="{{ data_fim }}" class="search-input">
+                    </div>
+                    <div class="search-group">
+                        <button type="submit" class="btn-search">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                        <a href="/contas_pagar" class="btn-clear">
+                            <i class="fas fa-times"></i> Limpar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        {% if contas %}
+            <div class="table-responsive">
+                <table class="financial-table">
+                    <thead>
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                            <th>Vencimento</th>
+                            <th>Fornecedor</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for conta in contas %}
+                        <tr class="{{ 'overdue' if conta.is_vencida() else '' }}">
+                            <td>{{ conta.descricao }}</td>
+                            <td class="value">R$ {{ "%.2f"|format(conta.valor) }}</td>
+                            <td>{{ conta.data_vencimento.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ conta.contato.nome if conta.contato else '-' }}</td>
+                            <td>
+                                <span class="status-badge {{ conta.status }}">
+                                    {% if conta.status == 'pendente' %}
+                                        {% if conta.is_vencida() %}
+                                            <i class="fas fa-exclamation-triangle"></i> Vencida
+                                        {% else %}
+                                            <i class="fas fa-clock"></i> Pendente
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="fas fa-check"></i> Paga
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    {% if conta.status == 'pendente' %}
+                                        <a href="/pagar_conta/{{ conta.id }}" class="btn-action pay" onclick="return confirm('Confirmar pagamento?')">
+                                            <i class="fas fa-check"></i> Pagar
+                                        </a>
+                                    {% else %}
+                                        <span class="paid-label">
+                                            <i class="fas fa-check-circle"></i> Paga em {{ conta.data_pagamento.strftime('%d/%m/%Y') }}
+                                        </span>
+                                    {% endif %}
+                                    <a href="/excluir_conta_pagar/{{ conta.id }}" class="btn-action delete" onclick="return confirm('Tem certeza que deseja excluir esta conta?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-file-invoice"></i>
+                <p>Nenhuma conta a pagar registrada ainda.</p>
+                <p>Use o formulário acima para adicionar sua primeira conta.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.getElementById('data_lancamento').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}
