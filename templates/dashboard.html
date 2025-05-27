@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Gestor Financeiro{% endblock %}
+
+{% block content %}
+<div class="sidebar">
+    <h2><i class="fas fa-chart-line"></i> Gestor Financeiro</h2>
+    <ul>
+        <li><a href="/dashboard" class="active"><i class="fas fa-home"></i> Visão Geral</a></li>
+        <li><a href="/contas_receber"><i class="fas fa-arrow-up"></i> Contas a Receber</a></li>
+        <li><a href="/contas_pagar"><i class="fas fa-arrow-down"></i> Contas a Pagar</a></li>
+        <li><a href="/carteira"><i class="fas fa-wallet"></i> Carteira</a></li>
+        <li><a href="/contatos"><i class="fas fa-users"></i> Contatos</a></li>
+        <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Sair</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <header>
+        <div class="user-info">
+            <span>{{ usuario.nome }}</span>
+            <div class="user-icon">{{ usuario.nome[:2].upper() }}</div>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <h1>Visão Geral</h1>
+        <p>Resumo da sua situação financeira</p>
+
+        <div class="cards">
+            <div class="card">
+                <div class="card-content">
+                    <p class="label">Saldo Total</p>
+                    <h3 class="{{ 'positive' if saldo_total >= 0 else 'negative' }}">
+                        R$ {{ "%.2f"|format(saldo_total) }}
+                    </h3>
+                </div>
+                <div class="card-icon"><i class="fas fa-receipt"></i></div>
+            </div>
+            <div class="card">
+                <div class="card-content">
+                    <p class="label">A Receber</p>
+                    <h3 class="positive">R$ {{ "%.2f"|format(total_a_receber) }}</h3>
+                </div>
+                <div class="card-icon"><i class="fas fa-chart-line"></i></div>
+            </div>
+            <div class="card">
+                <div class="card-content">
+                    <p class="label">A Pagar</p>
+                    <h3 class="negative">R$ {{ "%.2f"|format(total_a_pagar) }}</h3>
+                </div>
+                <div class="card-icon"><i class="fas fa-chart-bar"></i></div>
+            </div>
+            <div class="card">
+                <div class="card-content">
+                    <p class="label">Este Mês</p>
+                    <h3 class="{{ 'positive' if saldo_mes >= 0 else 'negative' }}">
+                        R$ {{ "%.2f"|format(saldo_mes) }}
+                    </h3>
+                </div>
+                <div class="card-icon"><i class="fas fa-chart-pie"></i></div>
+            </div>
+        </div>
+
+        <div class="sections">
+            <div class="section">
+                <h3>Movimentações Recentes 
+                    <a href="/carteira" class="section-link">Ver todas</a>
+                </h3>
+                
+                {% if movimentacoes_recentes %}
+                    <div class="transaction-list">
+                        {% for transacao in movimentacoes_recentes %}
+                        <div class="transaction-item">
+                            <div class="transaction-info">
+                                <span class="transaction-desc">{{ transacao.descricao }}</span>
+                                <span class="transaction-date">{{ transacao.data_transacao.strftime('%d/%m/%Y') }}</span>
+                            </div>
+                            <span class="transaction-value {{ transacao.tipo }}">
+                                {{ '+' if transacao.tipo == 'receita' else '-' }}R$ {{ "%.2f"|format(transacao.valor) }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-state">Nenhuma movimentação encontrada</p>
+                {% endif %}
+            </div>
+            
+            <div class="section">
+                <h3>Próximos Vencimentos 
+                    <a href="/contas_pagar" class="section-link">Ver todos</a>
+                </h3>
+                
+                {% if proximos_vencimentos %}
+                    <div class="due-list">
+                        {% for item in proximos_vencimentos %}
+                        <div class="due-item">
+                            <div class="due-info">
+                                <span class="due-desc">{{ item.descricao }}</span>
+                                <span class="due-date">Vence em {{ item.data_vencimento.strftime('%d/%m/%Y') }}</span>
+                            </div>
+                            <span class="due-value">R$ {{ "%.2f"|format(item.valor) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-state">Nenhum vencimento próximo</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
