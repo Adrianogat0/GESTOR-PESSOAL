@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Carteira - Gestor Financeiro{% endblock %}
+
+{% block content %}
+<div class="sidebar">
+    <h2><i class="fas fa-chart-line"></i> Gestor Financeiro</h2>
+    <ul>
+        <li><a href="/dashboard"><i class="fas fa-home"></i> Visão Geral</a></li>
+        <li><a href="/contas_receber"><i class="fas fa-arrow-up"></i> Contas a Receber</a></li>
+        <li><a href="/contas_pagar"><i class="fas fa-arrow-down"></i> Contas a Pagar</a></li>
+        <li><a href="/carteira" class="active"><i class="fas fa-wallet"></i> Carteira</a></li>
+        <li><a href="/contatos"><i class="fas fa-users"></i> Contatos</a></li>
+        <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Sair</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div class="page-header">
+        <h1><i class="fas fa-wallet"></i> Carteira</h1>
+        <p>Gerencie suas transações e acompanhe seu saldo</p>
+        
+        <div class="balance-card">
+            <div class="balance-info">
+                <span class="balance-label">Saldo Atual</span>
+                <span class="balance-value {{ 'positive' if saldo_total >= 0 else 'negative' }}">
+                    R$ {{ "%.2f"|format(saldo_total) }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <h3>Nova Transação</h3>
+        <form action="/carteira" method="POST" class="financial-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="descricao">Descrição</label>
+                    <input type="text" id="descricao" name="descricao" placeholder="Descrição da transação" required>
+                </div>
+                <div class="form-group">
+                    <label for="valor">Valor</label>
+                    <input type="number" step="0.01" id="valor" name="valor" placeholder="0,00" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="tipo">Tipo</label>
+                    <select id="tipo" name="tipo" required>
+                        <option value="">Selecione o tipo</option>
+                        <option value="receita">Receita</option>
+                        <option value="despesa">Despesa</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="categoria">Categoria</label>
+                    <input type="text" id="categoria" name="categoria" placeholder="Ex: Alimentação, Transporte">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="data_transacao">Data da Transação</label>
+                    <input type="date" id="data_transacao" name="data_transacao" required>
+                </div>
+                <div class="form-group">
+                    <label for="observacoes">Observações</label>
+                    <input type="text" id="observacoes" name="observacoes" placeholder="Observações adicionais">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                <i class="fas fa-plus"></i> Adicionar Transação
+            </button>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <h3>Histórico de Transações</h3>
+        
+        <!-- Barra de Pesquisa -->
+        <div class="search-container">
+            <form method="GET" class="search-form">
+                <div class="search-row">
+                    <div class="search-group">
+                        <input type="text" name="search_descricao" placeholder="Buscar por descrição..." 
+                               value="{{ search_descricao }}" class="search-input">
+                    </div>
+                    <div class="search-group">
+                        <input type="text" name="search_categoria" placeholder="Buscar por categoria..." 
+                               value="{{ search_categoria }}" class="search-input">
+                    </div>
+                    <div class="search-group">
+                        <select name="search_tipo" class="search-input">
+                            <option value="">Todos os tipos</option>
+                            <option value="receita" {{ 'selected' if search_tipo == 'receita' }}>Receita</option>
+                            <option value="despesa" {{ 'selected' if search_tipo == 'despesa' }}>Despesa</option>
+                        </select>
+                    </div>
+                    <div class="search-group">
+                        <input type="date" name="data_inicio" placeholder="Data início" 
+                               value="{{ data_inicio }}" class="search-input">
+                    </div>
+                    <div class="search-group">
+                        <input type="date" name="data_fim" placeholder="Data fim" 
+                               value="{{ data_fim }}" class="search-input">
+                    </div>
+                    <div class="search-group">
+                        <button type="submit" class="btn-search">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                        <a href="/carteira" class="btn-clear">
+                            <i class="fas fa-times"></i> Limpar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        {% if transacoes %}
+            <div class="table-responsive">
+                <table class="financial-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th>Tipo</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transacao in transacoes %}
+                        <tr>
+                            <td>{{ transacao.data_transacao.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ transacao.descricao }}</td>
+                            <td>{{ transacao.categoria or '-' }}</td>
+                            <td>
+                                <span class="type-badge {{ transacao.tipo }}">
+                                    {% if transacao.tipo == 'receita' %}
+                                        <i class="fas fa-arrow-up"></i> Receita
+                                    {% else %}
+                                        <i class="fas fa-arrow-down"></i> Despesa
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="value {{ transacao.tipo }}">
+                                {{ '+' if transacao.tipo == 'receita' else '-' }}R$ {{ "%.2f"|format(transacao.valor) }}
+                            </td>
+                            <td>
+                                <span class="status-badge {{ transacao.status }}">
+                                    {% if transacao.status == 'confirmada' %}
+                                        <i class="fas fa-check"></i> Confirmada
+                                    {% else %}
+                                        <i class="fas fa-clock"></i> Pendente
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="/excluir_transacao/{{ transacao.id }}" class="btn-action delete" onclick="return confirm('Tem certeza que deseja excluir esta transação?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-coins"></i>
+                <p>Nenhuma transação registrada ainda.</p>
+                <p>Use o formulário acima para adicionar sua primeira transação.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.getElementById('data_transacao').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}
