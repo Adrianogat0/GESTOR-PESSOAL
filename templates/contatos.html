@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Contatos - Gestor Financeiro{% endblock %}
+
+{% block content %}
+<div class="sidebar">
+    <h2><i class="fas fa-chart-line"></i> Gestor Financeiro</h2>
+    <ul>
+        <li><a href="/dashboard"><i class="fas fa-home"></i> Visão Geral</a></li>
+        <li><a href="/contas_receber"><i class="fas fa-arrow-up"></i> Contas a Receber</a></li>
+        <li><a href="/contas_pagar"><i class="fas fa-arrow-down"></i> Contas a Pagar</a></li>
+        <li><a href="/carteira"><i class="fas fa-wallet"></i> Carteira</a></li>
+        <li><a href="/contatos" class="active"><i class="fas fa-users"></i> Contatos</a></li>
+        <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Sair</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div class="page-header">
+        <h1><i class="fas fa-users"></i> Contatos</h1>
+        <p>Gerencie seus clientes e fornecedores</p>
+    </div>
+
+    <div class="form-container">
+        <h3>Novo Contato</h3>
+        <form action="/contatos" method="POST" class="financial-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nome">Nome</label>
+                    <input type="text" id="nome" name="nome" placeholder="Nome do contato" required>
+                </div>
+                <div class="form-group">
+                    <label for="tipo">Tipo</label>
+                    <select id="tipo" name="tipo" required>
+                        <option value="">Selecione o tipo</option>
+                        <option value="cliente">Cliente</option>
+                        <option value="fornecedor">Fornecedor</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" placeholder="email@exemplo.com">
+                </div>
+                <div class="form-group">
+                    <label for="telefone">Telefone</label>
+                    <input type="tel" id="telefone" name="telefone" placeholder="(11) 99999-9999">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="endereco">Endereço</label>
+                <textarea id="endereco" name="endereco" placeholder="Endereço completo" rows="3"></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                <i class="fas fa-plus"></i> Adicionar Contato
+            </button>
+        </form>
+    </div>
+
+    <div class="contacts-container">
+        <h3>Lista de Contatos</h3>
+        
+        {% if contatos %}
+            <div class="contacts-grid">
+                {% for contato in contatos %}
+                <div class="contact-card">
+                    <div class="contact-header">
+                        <div class="contact-avatar">
+                            <i class="fas fa-{{ 'user-tie' if contato.tipo == 'cliente' else 'truck' }}"></i>
+                        </div>
+                        <div class="contact-info">
+                            <h4>{{ contato.nome }}</h4>
+                            <span class="contact-type {{ contato.tipo }}">
+                                {% if contato.tipo == 'cliente' %}
+                                    <i class="fas fa-user"></i> Cliente
+                                {% else %}
+                                    <i class="fas fa-store"></i> Fornecedor
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-details">
+                        {% if contato.email %}
+                        <div class="contact-detail">
+                            <i class="fas fa-envelope"></i>
+                            <span>{{ contato.email }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if contato.telefone %}
+                        <div class="contact-detail">
+                            <i class="fas fa-phone"></i>
+                            <span>{{ contato.telefone }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if contato.endereco %}
+                        <div class="contact-detail">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>{{ contato.endereco }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="contact-actions">
+                        <span class="contact-date">
+                            <i class="fas fa-calendar"></i>
+                            Criado em {{ contato.created_at.strftime('%d/%m/%Y') }}
+                        </span>
+                        <a href="/excluir_contato/{{ contato.id }}" class="btn-action delete" 
+                           onclick="return confirm('Tem certeza que deseja excluir este contato?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-address-book"></i>
+                <p>Nenhum contato cadastrado ainda.</p>
+                <p>Use o formulário acima para adicionar seu primeiro contato.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
