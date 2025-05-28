@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: gestor-financeiro
+    env: python
+    buildCommand: pip install -r render_requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT main:app
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gestor-financeiro-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+
+databases:
+  - name: gestor-financeiro-db
+    databaseName: gestor_financeiro
+    user: gestor_user
