@@ -66,38 +66,6 @@
     <div class="table-container">
         <h3>Contas Registradas</h3>
         
-        <!-- Barra de Pesquisa -->
-        <div class="search-container">
-            <form method="GET" class="search-form">
-                <div class="search-row">
-                    <div class="search-group">
-                        <input type="text" name="search_descricao" placeholder="Buscar por descrição..." 
-                               value="{{ search_descricao }}" class="search-input">
-                    </div>
-                    <div class="search-group">
-                        <input type="text" name="search_fornecedor" placeholder="Buscar por fornecedor..." 
-                               value="{{ search_fornecedor }}" class="search-input">
-                    </div>
-                    <div class="search-group">
-                        <input type="date" name="data_inicio" placeholder="Data início" 
-                               value="{{ data_inicio }}" class="search-input">
-                    </div>
-                    <div class="search-group">
-                        <input type="date" name="data_fim" placeholder="Data fim" 
-                               value="{{ data_fim }}" class="search-input">
-                    </div>
-                    <div class="search-group">
-                        <button type="submit" class="btn-search">
-                            <i class="fas fa-search"></i> Buscar
-                        </button>
-                        <a href="/contas_pagar" class="btn-clear">
-                            <i class="fas fa-times"></i> Limpar
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
-        
         {% if contas %}
             <div class="table-responsive">
                 <table class="financial-table">
