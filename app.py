@@ -1,38 +1,98 @@
+from flask import Flask, render_template, request, redirect, session, url_for, flash
+import sqlite3
 import os
-import logging
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
-from werkzeug.middleware.proxy_fix import ProxyFix
 
-logging.basicConfig(level=logging.DEBUG)
-
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
-
-# Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "chave_secreta_segura_para_desenvolvimento")
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.secret_key = 'chave_secreta_segura'
 
-# Configure the database
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///financeiro.db")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
+# Banco de dados
+def criar_banco():
+    conn = sqlite3.connect('usuarios.db')
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            senha TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
-# Initialize the app with the extension
-db.init_app(app)
+criar_banco()
 
-with app.app_context():
-    # Import models to ensure tables are created
-    import models
-    import routes
-    
-    db.create_all()
+# Página inicial
+@app.route('/')
+def index():
+    return redirect('/login')
+
+# Cadastro
+@app.route('/cadastro', methods=['GET', 'POST'])
+def cadastro():
+    if request.method == 'POST':
+        nome = request.form['nome']
+        email = request.form['email']
+        senha = request.form['senha']
+        try:
+            conn = sqlite3.connect('usuarios.db')
+            c = conn.cursor()
+            c.execute("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)", (nome, email, senha))
+            conn.commit()
+            conn.close()
+            flash('Cadastro realizado com sucesso!', 'success')
+            return redirect('/login')
+        except sqlite3.IntegrityError:
+            flash('Email já cadastrado!', 'danger')
+    return render_template('cadastro.html')
+
+# Login
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        senha = request.form['senha']
+        conn = sqlite3.connect('usuarios.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM usuarios WHERE email = ? AND senha = ?", (email, senha))
+        usuario = c.fetchone()
+        conn.close()
+        if usuario:
+            session['usuario_id'] = usuario[0]
+            session['usuario_nome'] = usuario[1]
+            return redirect('/dashboard')
+        else:
+            flash('Credenciais inválidas!', 'danger')
+    return render_template('login.html')
+
+# Dashboard
+@app.route('/dashboard')
+def dashboard():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+    nome = session['usuario_nome']
+    return render_template('dashboard.html', nome=nome)
+
+# Logout
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
+@app.route('/contas_pagar', methods=['GET', 'POST'])
+def contas_pagar():
+    if request.method == 'POST':
+        # Aqui você irá salvar a conta no banco de dados
+        descricao = request.form['descricao']
+        valor = request.form['valor']
+        data_lancamento = request.form['data_lancamento']
+        data_vencimento = request.form['data_vencimento']
+        contato = request.form['contato']
+        # (Você pode salvar isso em uma lista, arquivo ou banco de dados)
+
+        flash("Conta registrada com sucesso!", "success")
+
+    return render_template('contas_pagar.html')
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True)
