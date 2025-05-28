@@ -1,73 +1,38 @@
-from flask import Flask, render_template, session, redirect
-import datetime
+import os
+import logging
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
+from werkzeug.middleware.proxy_fix import ProxyFix
 
+logging.basicConfig(level=logging.DEBUG)
+
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
+
+# Create the app
 app = Flask(__name__)
-app.secret_key = 'sua_chave_secreta'  # Altere para uma chave segura em produção
+app.secret_key = os.environ.get("SESSION_SECRET", "chave_secreta_segura_para_desenvolvimento")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-@app.route('/login')
-def login():
-    # Simulação de login — substitua por autenticação real
-    session['usuario_id'] = 1
-    session['usuario_nome'] = 'João Silva'
-    return redirect('/dashboard')
+# Configure the database
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///financeiro.db")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/login')
+# Initialize the app with the extension
+db.init_app(app)
 
-@app.route('/dashboard')
-def dashboard():
-    if 'usuario_id' not in session:
-        return redirect('/login')
-
-    usuario = {
-        'id': session['usuario_id'],
-        'nome': session['usuario_nome']
-    }
-
-    # Simulação de dados — substitua por consultas ao banco de dados
-    saldo_total = 3500.75
-    total_a_receber = 2000.00
-    total_a_pagar = 1500.25
-    saldo_mes = 500.50
-
-    movimentacoes_recentes = [
-        {
-            'descricao': 'Venda produto X',
-            'data_transacao': datetime.datetime(2025, 5, 25),
-            'valor': 150.00,
-            'tipo': 'receita'
-        },
-        {
-            'descricao': 'Conta de luz',
-            'data_transacao': datetime.datetime(2025, 5, 24),
-            'valor': 120.00,
-            'tipo': 'despesa'
-        }
-    ]
-
-    proximos_vencimentos = [
-        {
-            'descricao': 'Aluguel',
-            'data_vencimento': datetime.datetime(2025, 6, 1),
-            'valor': 1000.00
-        },
-        {
-            'descricao': 'Internet',
-            'data_vencimento': datetime.datetime(2025, 6, 3),
-            'valor': 150.00
-        }
-    ]
-
-    return render_template('dashboard.html',
-                           usuario=usuario,
-                           saldo_total=saldo_total,
-                           total_a_receber=total_a_receber,
-                           total_a_pagar=total_a_pagar,
-                           saldo_mes=saldo_mes,
-                           movimentacoes_recentes=movimentacoes_recentes,
-                           proximos_vencimentos=proximos_vencimentos)
+with app.app_context():
+    # Import models to ensure tables are created
+    import models
+    import routes
+    
+    db.create_all()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
