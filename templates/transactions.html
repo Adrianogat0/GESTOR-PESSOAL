@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}Transações - Meu Financeiro{% endblock %}
+{% block page_title %}Transações{% endblock %}
+
+{% block content %}
+<!-- Action Bar -->
+<div class="action-bar mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos os tipos</option>
+                        <option value="receita" {% if tipo_filtro == 'receita' %}selected{% endif %}>Receitas</option>
+                        <option value="despesa" {% if tipo_filtro == 'despesa' %}selected{% endif %}>Despesas</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="categoria" class="form-select">
+                        <option value="">Todas as categorias</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if categoria_filtro == categoria.id %}selected{% endif %}>
+                            {{ categoria.icone }} {{ categoria.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="conta" class="form-select">
+                        <option value="">Todas as contas</option>
+                        {% for conta in contas %}
+                        <option value="{{ conta.id }}" {% if conta_filtro == conta.id %}selected{% endif %}>
+                            {{ conta.icone }} {{ conta.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}" placeholder="Data início">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="data_fim" class="form-control" value="{{ data_fim }}" placeholder="Data fim">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="venc_inicio" class="form-control" value="{{ venc_inicio }}" placeholder="Venc. início">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="venc_fim" class="form-control" value="{{ venc_fim }}" placeholder="Venc. fim">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('nova_transacao') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nova Transação
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if nova_transacao %}
+<!-- New Transaction Form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-plus"></i> Nova Transação</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" novalidate>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="descricao" class="form-label">Descrição</label>
+                    <input type="text" class="form-control" id="descricao" name="descricao" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="valor" class="form-label">Valor</label>
+                    <input type="number" class="form-control" id="valor" name="valor" step="0.01" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="tipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="tipo" name="tipo" required>
+                        <option value="">Selecione...</option>
+                        <option value="receita">Receita</option>
+                        <option value="despesa">Despesa</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="data" class="form-label">Data</label>
+                    <input type="date" class="form-control" id="data" name="data" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="data_vencimento" class="form-label">Data Vencimento</label>
+                    <input type="date" class="form-control" id="data_vencimento" name="data_vencimento">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="categoria_id" class="form-label">Categoria</label>
+                    <select class="form-select" id="categoria_id" name="categoria_id" required>
+                        <option value="">Selecione...</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}">{{ categoria.icone }} {{ categoria.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="conta_id" class="form-label">Conta</label>
+                    <select class="form-select" id="conta_id" name="conta_id" required>
+                        <option value="">Selecione...</option>
+                        {% for conta in contas %}
+                        <option value="{{ conta.id }}">{{ conta.icone }} {{ conta.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-9 mb-3">
+                    <label for="observacoes" class="form-label">Observações</label>
+                    <textarea class="form-control" id="observacoes" name="observacoes" rows="2"></textarea>
+                </div>
+                <div class="col-md-3 mb-3 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="paga" name="paga">
+                        <label class="form-check-label" for="paga">
+                            Transação já paga
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+                <a href="{{ url_for('transacoes') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Summary Card -->
+{% if transacoes and transacoes.items %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card summary-card success">
+            <div class="card-body text-center">
+                <h4 class="text-success">{{ total_receitas_formatado }}</h4>
+                <div class="card-title">Total Receitas</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card summary-card danger">
+            <div class="card-body text-center">
+                <h4 class="text-danger">{{ total_despesas_formatado }}</h4>
+                <div class="card-title">Total Despesas</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card summary-card">
+            <div class="card-body text-center">
+                <h4 class="{% if total_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">{{ total_saldo_formatado }}</h4>
+                <div class="card-title">Saldo</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card summary-card warning">
+            <div class="card-body text-center">
+                <h4 class="text-primary">{{ transacoes.total }}</h4>
+                <div class="card-title">Total de Transações</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Transactions List -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Lista de Transações</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if transacoes and transacoes.items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Vencimento</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th>Conta</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transacao in transacoes.items %}
+                    <tr>
+                        <td>{{ transacao.data.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            {% if transacao.data_vencimento %}
+                                {{ transacao.data_vencimento.strftime('%d/%m/%Y') }}
+                                {% if transacao.data_vencimento < hoje and not transacao.paga %}
+                                    <i class="fas fa-exclamation-triangle text-danger" title="Vencida"></i>
+                                {% endif %}
+                            {% else %}
+                                <small class="text-muted">-</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-bold">{{ transacao.descricao }}</div>
+                            {% if transacao.observacoes %}
+                            <small class="text-muted">{{ transacao.observacoes }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="color: {{ transacao.categoria.cor }}">{{ transacao.categoria.icone }}</span>
+                            {{ transacao.categoria.nome }}
+                        </td>
+                        <td>
+                            <span style="color: {{ transacao.conta.cor }}">{{ transacao.conta.icone }}</span>
+                            {{ transacao.conta.nome }}
+                        </td>
+                        <td class="{% if transacao.tipo == 'receita' %}text-success{% else %}text-danger{% endif %}">
+                            <strong>
+                                {% if transacao.tipo == 'receita' %}+{% else %}-{% endif %}{{ transacao.valor_formatado }}
+                            </strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ transacao.status_class }}">
+                                {% if transacao.status == 'paga' %}Paga{% elif transacao.status == 'vencida' %}Vencida{% else %}Pendente{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                {% if not transacao.paga %}
+                                <form method="POST" action="{{ url_for('pagar_transacao', id=transacao.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Marcar como paga">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <a href="{{ url_for('editar_transacao', id=transacao.id) }}" class="btn btn-outline-primary btn-sm" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('excluir_transacao', id=transacao.id) }}" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta transação?')">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if transacoes.pages > 1 %}
+        <div class="d-flex justify-content-center mt-3">
+            <nav>
+                <ul class="pagination">
+                    {% if transacoes.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('transacoes', page=transacoes.prev_num) }}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in transacoes.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != transacoes.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('transacoes', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if transacoes.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('transacoes', page=transacoes.next_num) }}">Próximo</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>Nenhuma transação encontrada</p>
+            <a href="{{ url_for('nova_transacao') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Adicionar Primeira Transação
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
