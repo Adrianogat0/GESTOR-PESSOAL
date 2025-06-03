@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Categorias - Meu Financeiro{% endblock %}
+{% block page_title %}Categorias{% endblock %}
+
+{% block content %}
+<!-- Action Bar -->
+<div class="action-bar mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Gerencie suas categorias</h5>
+        <a href="{{ url_for('nova_categoria') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nova Categoria
+        </a>
+    </div>
+</div>
+
+{% if nova_categoria %}
+<!-- New Category Form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-plus"></i> Nova Categoria</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" novalidate>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="nome" class="form-label">Nome da Categoria</label>
+                    <input type="text" class="form-control" id="nome" name="nome" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="tipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="tipo" name="tipo" required>
+                        <option value="">Selecione...</option>
+                        <option value="receita">Receita</option>
+                        <option value="despesa">Despesa</option>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="cor" class="form-label">Cor</label>
+                    <input type="color" class="form-control form-control-color" id="cor" name="cor" value="#6a0dad">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="icone" class="form-label">Ícone</label>
+                    <select class="form-select" id="icone" name="icone">
+                        <option value="💰">💰 Dinheiro</option>
+                        <option value="💼">💼 Trabalho</option>
+                        <option value="🍽️">🍽️ Alimentação</option>
+                        <option value="🚗">🚗 Transporte</option>
+                        <option value="🏠">🏠 Moradia</option>
+                        <option value="🏥">🏥 Saúde</option>
+                        <option value="📚">📚 Educação</option>
+                        <option value="🎮">🎮 Lazer</option>
+                        <option value="👕">👕 Roupas</option>
+                        <option value="📱">📱 Tecnologia</option>
+                        <option value="✈️">✈️ Viagem</option>
+                        <option value="🎁">🎁 Presentes</option>
+                        <option value="📈">📈 Investimentos</option>
+                        <option value="💻">💻 Freelance</option>
+                        <option value="📦">📦 Outros</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <div class="card category-preview">
+                        <div class="card-body">
+                            <h6>Prévia da Categoria:</h6>
+                            <div class="d-flex align-items-center">
+                                <div class="category-icon me-3" id="category-preview-icon" style="background-color: #6a0dad;">
+                                    💰
+                                </div>
+                                <div>
+                                    <div class="fw-bold" id="category-preview-name">Nome da Categoria</div>
+                                    <small class="text-muted" id="category-preview-type">Tipo</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+                <a href="{{ url_for('categorias') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Categories List -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="fas fa-arrow-up"></i> Receitas</h6>
+            </div>
+            <div class="card-body">
+                {% set receitas = categorias|selectattr('tipo', 'equalto', 'receita')|list %}
+                {% if receitas %}
+                    {% for categoria in receitas %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="category-icon me-3" style="background-color: {{ categoria.cor }};">
+                                {{ categoria.icone }}
+                            </div>
+                            <div>
+                                <div class="fw-bold">{{ categoria.nome }}</div>
+                                <small class="text-muted">Criada em {{ categoria.created_at.strftime('%d/%m/%Y') }}</small>
+                            </div>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-tag"></i>
+                    <p>Nenhuma categoria de receita</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0"><i class="fas fa-arrow-down"></i> Despesas</h6>
+            </div>
+            <div class="card-body">
+                {% set despesas = categorias|selectattr('tipo', 'equalto', 'despesa')|list %}
+                {% if despesas %}
+                    {% for categoria in despesas %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="category-icon me-3" style="background-color: {{ categoria.cor }};">
+                                {{ categoria.icone }}
+                            </div>
+                            <div>
+                                <div class="fw-bold">{{ categoria.nome }}</div>
+                                <small class="text-muted">Criada em {{ categoria.created_at.strftime('%d/%m/%Y') }}</small>
+                            </div>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-tag"></i>
+                    <p>Nenhuma categoria de despesa</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not categorias %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="empty-state">
+                    <i class="fas fa-tags"></i>
+                    <p>Nenhuma categoria cadastrada</p>
+                    <a href="{{ url_for('nova_categoria') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Adicionar Primeira Categoria
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Category Tips -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Dicas para Categorias</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-success">Receitas Comuns:</h6>
+                        <ul class="list-unstyled">
+                            <li>💼 Salário</li>
+                            <li>💻 Freelance</li>
+                            <li>📈 Investimentos</li>
+                            <li>🎁 Presentes</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-danger">Despesas Comuns:</h6>
+                        <ul class="list-unstyled">
+                            <li>🍽️ Alimentação</li>
+                            <li>🚗 Transporte</li>
+                            <li>🏠 Moradia</li>
+                            <li>🏥 Saúde</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Category preview functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const nomeInput = document.getElementById('nome');
+    const tipoInput = document.getElementById('tipo');
+    const corInput = document.getElementById('cor');
+    const iconeInput = document.getElementById('icone');
+    
+    const previewIcon = document.getElementById('category-preview-icon');
+    const previewName = document.getElementById('category-preview-name');
+    const previewType = document.getElementById('category-preview-type');
+    
+    function updatePreview() {
+        if (nomeInput) previewName.textContent = nomeInput.value || 'Nome da Categoria';
+        if (tipoInput) previewType.textContent = tipoInput.value || 'Tipo';
+        if (corInput) previewIcon.style.backgroundColor = corInput.value;
+        if (iconeInput) previewIcon.textContent = iconeInput.value;
+    }
+    
+    if (nomeInput) nomeInput.addEventListener('input', updatePreview);
+    if (tipoInput) tipoInput.addEventListener('change', updatePreview);
+    if (corInput) corInput.addEventListener('change', updatePreview);
+    if (iconeInput) iconeInput.addEventListener('change', updatePreview);
+});
+</script>
+{% endblock %}
