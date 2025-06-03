@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Transação - Meu Financeiro{% endblock %}
+{% block page_title %}Editar Transação{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-edit"></i> Editar Transação</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" novalidate>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="descricao" class="form-label">Descrição</label>
+                    <input type="text" class="form-control" id="descricao" name="descricao" value="{{ transacao.descricao }}" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="valor" class="form-label">Valor</label>
+                    <input type="number" class="form-control" id="valor" name="valor" step="0.01" value="{{ transacao.valor }}" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="tipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="tipo" name="tipo" required>
+                        <option value="">Selecione...</option>
+                        <option value="receita" {% if transacao.tipo == 'receita' %}selected{% endif %}>Receita</option>
+                        <option value="despesa" {% if transacao.tipo == 'despesa' %}selected{% endif %}>Despesa</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="data" class="form-label">Data</label>
+                    <input type="date" class="form-control" id="data" name="data" value="{{ transacao.data.strftime('%Y-%m-%d') }}" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="data_vencimento" class="form-label">Data Vencimento</label>
+                    <input type="date" class="form-control" id="data_vencimento" name="data_vencimento" 
+                           value="{% if transacao.data_vencimento %}{{ transacao.data_vencimento.strftime('%Y-%m-%d') }}{% endif %}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="categoria_id" class="form-label">Categoria</label>
+                    <select class="form-select" id="categoria_id" name="categoria_id" required>
+                        <option value="">Selecione...</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if categoria.id == transacao.categoria_id %}selected{% endif %}>
+                            {{ categoria.icone }} {{ categoria.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="conta_id" class="form-label">Conta</label>
+                    <select class="form-select" id="conta_id" name="conta_id" required>
+                        <option value="">Selecione...</option>
+                        {% for conta in contas %}
+                        <option value="{{ conta.id }}" {% if conta.id == transacao.conta_id %}selected{% endif %}>
+                            {{ conta.icone }} {{ conta.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-9 mb-3">
+                    <label for="observacoes" class="form-label">Observações</label>
+                    <textarea class="form-control" id="observacoes" name="observacoes" rows="2">{{ transacao.observacoes or '' }}</textarea>
+                </div>
+                <div class="col-md-3 mb-3 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="paga" name="paga" {% if transacao.paga %}checked{% endif %}>
+                        <label class="form-check-label" for="paga">
+                            Transação já paga
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar Alterações
+                </button>
+                <a href="{{ url_for('transacoes') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
