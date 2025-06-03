@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Meu Financeiro{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card summary-card success">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="card-title">Receitas do Mês</div>
+                    <h3 class="card-value text-success">R$ {{ "%.2f"|format(total_receitas|float) }}</h3>
+                </div>
+                <i class="fas fa-arrow-up fa-2x"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card summary-card danger">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="card-title">Despesas do Mês</div>
+                    <h3 class="card-value text-danger">R$ {{ "%.2f"|format(total_despesas|float) }}</h3>
+                </div>
+                <i class="fas fa-arrow-down fa-2x"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card summary-card">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="card-title">Saldo do Mês</div>
+                    <h3 class="card-value {% if saldo_mes >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        R$ {{ "%.2f"|format(saldo_mes|float) }}
+                    </h3>
+                </div>
+                <i class="fas fa-balance-scale fa-2x"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card summary-card warning">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="card-title">Contas Pendentes</div>
+                    <h3 class="card-value text-warning">{{ contas_vencidas + contas_vencer }}</h3>
+                </div>
+                <i class="fas fa-clock fa-2x"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Transactions -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Transações Recentes</h5>
+                <a href="{{ url_for('transacoes') }}" class="btn btn-outline-light btn-sm">Ver Todas</a>
+            </div>
+            <div class="card-body p-0">
+                {% if transacoes_recentes %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transacao in transacoes_recentes %}
+                            <tr>
+                                <td>{{ transacao.data.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ transacao.descricao }}</td>
+                                <td>
+                                    <span style="color: {{ transacao.categoria.cor }}">{{ transacao.categoria.icone }}</span>
+                                    {{ transacao.categoria.nome }}
+                                </td>
+                                <td class="{% if transacao.tipo == 'receita' %}text-success{% else %}text-danger{% endif %}">
+                                    {% if transacao.tipo == 'receita' %}+{% else %}-{% endif %}{{ transacao.valor_formatado }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ transacao.status_class }}">
+                                        {% if transacao.status == 'paga' %}Paga{% elif transacao.status == 'vencida' %}Vencida{% else %}Pendente{% endif %}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>Nenhuma transação encontrada</p>
+                    <a href="{{ url_for('nova_transacao') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Adicionar Transação
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Account Balances -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-university"></i> Suas Contas</h5>
+                <a href="{{ url_for('contas') }}" class="btn btn-outline-light btn-sm">Gerenciar</a>
+            </div>
+            <div class="card-body">
+                {% if contas %}
+                    {% for conta in contas %}
+                    <div class="account-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="d-flex align-items-center">
+                                <span style="color: {{ conta.cor }}; font-size: 1.2rem;">{{ conta.icone }}</span>
+                                <div class="ms-2">
+                                    <div class="fw-bold">{{ conta.nome }}</div>
+                                    <small class="text-muted">{{ conta.banco }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold {% if conta.saldo_atual >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ conta.saldo_formatado }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-plus-circle"></i>
+                    <p>Nenhuma conta cadastrada</p>
+                    <a href="{{ url_for('nova_conta') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Adicionar Conta
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt"></i> Ações Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('nova_transacao') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-plus"></i> Nova Transação
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('nova_conta') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-university"></i> Nova Conta
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('nova_categoria') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-tag"></i> Nova Categoria
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('relatorios') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-chart-bar"></i> Ver Relatórios
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}
