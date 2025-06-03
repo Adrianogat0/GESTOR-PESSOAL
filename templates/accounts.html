@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Contas - Meu Financeiro{% endblock %}
+{% block page_title %}Contas{% endblock %}
+
+{% block content %}
+<!-- Action Bar -->
+<div class="action-bar mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Gerencie suas contas bancárias</h5>
+        <a href="{{ url_for('nova_conta') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nova Conta
+        </a>
+    </div>
+</div>
+
+{% if nova_conta %}
+<!-- New Account Form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-plus"></i> Nova Conta</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" novalidate>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="nome" class="form-label">Nome da Conta</label>
+                    <input type="text" class="form-control" id="nome" name="nome" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="tipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="tipo" name="tipo" required>
+                        <option value="">Selecione...</option>
+                        <option value="conta_corrente">Conta Corrente</option>
+                        <option value="conta_poupanca">Conta Poupança</option>
+                        <option value="cartao_credito">Cartão de Crédito</option>
+                        <option value="investimento">Investimento</option>
+                        <option value="dinheiro">Dinheiro</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="saldo_inicial" class="form-label">Saldo Inicial</label>
+                    <input type="number" class="form-control" id="saldo_inicial" name="saldo_inicial" step="0.01" value="0">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="banco" class="form-label">Banco</label>
+                    <input type="text" class="form-control" id="banco" name="banco">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="cor" class="form-label">Cor</label>
+                    <input type="color" class="form-control form-control-color" id="cor" name="cor" value="#6a0dad">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="icone" class="form-label">Ícone</label>
+                    <select class="form-select" id="icone" name="icone">
+                        <option value="🏦">🏦 Banco</option>
+                        <option value="💳">💳 Cartão</option>
+                        <option value="💰">💰 Dinheiro</option>
+                        <option value="📈">📈 Investimento</option>
+                        <option value="🏛️">🏛️ Instituição</option>
+                        <option value="💼">💼 Negócios</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+                <a href="{{ url_for('contas') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Accounts List -->
+<div class="row">
+    {% if contas %}
+        {% for conta in contas %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card account-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-flex align-items-center">
+                            <span style="color: {{ conta.cor }}; font-size: 2rem;">{{ conta.icone }}</span>
+                            <div class="ms-3">
+                                <h5 class="card-title mb-1">{{ conta.nome }}</h5>
+                                <small class="text-muted">{{ conta.banco }}</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-primary">{{ conta.tipo.replace('_', ' ').title() }}</span>
+                    </div>
+                    
+                    <div class="account-balance">
+                        <div class="text-muted mb-1">Saldo Atual</div>
+                        <h3 class="{% if conta.saldo_atual >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ conta.saldo_formatado }}
+                        </h3>
+                    </div>
+                    
+                    {% if conta.saldo_inicial != conta.saldo_atual %}
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            Saldo inicial: R$ {{ "%.2f"|format(conta.saldo_inicial|float) }}
+                        </small>
+                        <div class="progress mt-1" style="height: 4px;">
+                            {% set percentual = ((conta.saldo_atual / conta.saldo_inicial * 100) if conta.saldo_inicial > 0 else 100) %}
+                            <div class="progress-bar {% if percentual >= 100 %}bg-success{% elif percentual >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                 style="width: {{ percentual }}%"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            Criada em {{ conta.created_at.strftime('%d/%m/%Y') }}
+                        </small>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="empty-state">
+                    <i class="fas fa-university"></i>
+                    <p>Nenhuma conta cadastrada</p>
+                    <a href="{{ url_for('nova_conta') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Adicionar Primeira Conta
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Account Types Info -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle"></i> Tipos de Conta</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><strong>Conta Corrente:</strong> Para movimentações do dia a dia</li>
+                            <li><strong>Conta Poupança:</strong> Para guardar dinheiro</li>
+                            <li><strong>Cartão de Crédito:</strong> Para despesas no cartão</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><strong>Investimento:</strong> Para aplicações financeiras</li>
+                            <li><strong>Dinheiro:</strong> Para controle do dinheiro físico</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
