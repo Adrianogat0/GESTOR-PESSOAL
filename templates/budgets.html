@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Orçamentos - Meu Financeiro{% endblock %}
+{% block page_title %}Orçamentos{% endblock %}
+
+{% block content %}
+<!-- Action Bar -->
+<div class="action-bar mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Gerencie seus orçamentos mensais</h5>
+        <a href="{{ url_for('novo_orcamento') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Novo Orçamento
+        </a>
+    </div>
+</div>
+
+{% if novo_orcamento %}
+<!-- New Budget Form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-plus"></i> Novo Orçamento</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" novalidate>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="nome" class="form-label">Nome do Orçamento</label>
+                    <input type="text" class="form-control" id="nome" name="nome" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="categoria_id" class="form-label">Categoria</label>
+                    <select class="form-select" id="categoria_id" name="categoria_id" required>
+                        <option value="">Selecione...</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}">{{ categoria.icone }} {{ categoria.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="valor_planejado" class="form-label">Valor Planejado</label>
+                    <input type="number" class="form-control" id="valor_planejado" name="valor_planejado" step="0.01" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="mes" class="form-label">Mês</label>
+                    <select class="form-select" id="mes" name="mes" required>
+                        {% for i in range(1, 13) %}
+                        <option value="{{ i }}" {% if i == now.month %}selected{% endif %}>
+                            {% set meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                                           'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
+                            {{ meses[i-1] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="ano" class="form-label">Ano</label>
+                    <select class="form-select" id="ano" name="ano" required>
+                        {% for year in range(2020, 2030) %}
+                        <option value="{{ year }}" {% if year == now.year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+                <a href="{{ url_for('orcamentos') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Budget Summary -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card summary-card">
+            <div class="card-body text-center">
+                <h3 class="text-primary">{{ orcamentos|length }}</h3>
+                <div class="card-title">Orçamentos Ativos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card summary-card success">
+            <div class="card-body text-center">
+                {% set total_planejado = orcamentos|sum(attribute='valor_planejado') %}
+                <h3 class="text-success">R$ {{ "%.2f"|format(total_planejado|float) }}</h3>
+                <div class="card-title">Total Planejado</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card summary-card danger">
+            <div class="card-body text-center">
+                {% set total_gasto = orcamentos|sum(attribute='valor_gasto') %}
+                <h3 class="text-danger">R$ {{ "%.2f"|format(total_gasto|float) }}</h3>
+                <div class="card-title">Total Gasto</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card summary-card">
+            <div class="card-body text-center">
+                {% set total_restante = total_planejado - total_gasto %}
+                <h3 class="{% if total_restante >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    R$ {{ "%.2f"|format(total_restante|float) }}
+                </h3>
+                <div class="card-title">Saldo Restante</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budgets List -->
+<div class="row">
+    {% if orcamentos %}
+        {% for orcamento in orcamentos %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card budget-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-flex align-items-center">
+                            <span style="color: {{ orcamento.categoria.cor }}; font-size: 2rem;">
+                                {{ orcamento.categoria.icone }}
+                            </span>
+                            <div class="ms-3">
+                                <h6 class="card-title mb-1">{{ orcamento.nome }}</h6>
+                                <small class="text-muted">{{ orcamento.categoria.nome }}</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-{{ orcamento.status }}">
+                            {% if orcamento.percentual_usado >= 100 %}Excedido
+                            {% elif orcamento.percentual_usado >= 80 %}Atenção
+                            {% else %}Ok{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="budget-progress mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Progresso</span>
+                            <span class="fw-bold">{{ "%.1f"|format(orcamento.percentual_usado) }}%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-{{ orcamento.status }}" 
+                                 style="width: {{ orcamento.percentual_usado }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="text-muted small">Planejado</div>
+                            <div class="fw-bold">R$ {{ "%.0f"|format(orcamento.valor_planejado|float) }}</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted small">Gasto</div>
+                            <div class="fw-bold text-danger">R$ {{ "%.0f"|format(orcamento.valor_gasto|float) }}</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted small">Restante</div>
+                            <div class="fw-bold {% if orcamento.valor_restante > 0 %}text-success{% else %}text-danger{% endif %}">
+                                R$ {{ "%.0f"|format(orcamento.valor_restante|float) }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if orcamento.percentual_usado >= 80 %}
+                    <div class="alert alert-{{ orcamento.status }} alert-sm mt-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        {% if orcamento.percentual_usado >= 100 %}
+                        Orçamento excedido!
+                        {% else %}
+                        Atenção: 80% do orçamento utilizado
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            {% set meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+                                           'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'] %}
+                            {{ meses[orcamento.mes-1] }}/{{ orcamento.ano }}
+                        </small>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="empty-state">
+                    <i class="fas fa-chart-pie"></i>
+                    <p>Nenhum orçamento cadastrado para este mês</p>
+                    <a href="{{ url_for('novo_orcamento') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Criar Primeiro Orçamento
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Budget Tips -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Dicas para Orçamentos</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> Defina valores realistas baseados no histórico</li>
+                            <li><i class="fas fa-check text-success"></i> Monitore regularmente o progresso</li>
+                            <li><i class="fas fa-check text-success"></i> Ajuste quando necessário</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-exclamation-triangle text-warning"></i> Amarelo: 80% do orçamento usado</li>
+                            <li><i class="fas fa-times text-danger"></i> Vermelho: Orçamento excedido</li>
+                            <li><i class="fas fa-check text-success"></i> Verde: Dentro do planejado</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
