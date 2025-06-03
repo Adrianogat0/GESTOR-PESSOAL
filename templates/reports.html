@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios - Meu Financeiro{% endblock %}
+{% block page_title %}Relatórios{% endblock %}
+
+{% block content %}
+<!-- Report Filters -->
+<div class="action-bar mb-4">
+    <div class="row">
+        <div class="col-md-8">
+            <form id="report-filters" class="row g-3">
+                <div class="col-md-4">
+                    <label for="ano-relatorio" class="form-label">Ano</label>
+                    <select class="form-select" id="ano-relatorio">
+                        {% for year in range(2020, 2030) %}
+                        <option value="{{ year }}" {% if year == 2024 %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="mes-relatorio" class="form-label">Mês (Gráfico de Pizza)</label>
+                    <select class="form-select" id="mes-relatorio">
+                        {% for i in range(1, 13) %}
+                        <option value="{{ i }}" {% if i == 12 %}selected{% endif %}>
+                            {% set meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                                           'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
+                            {{ meses[i-1] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="button" class="btn btn-primary w-100" onclick="updateCharts()">
+                        <i class="fas fa-sync"></i> Atualizar Gráficos
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-4 text-end">
+            <button type="button" class="btn btn-outline-primary" onclick="exportReport()">
+                <i class="fas fa-download"></i> Exportar PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <!-- Monthly Income vs Expenses Chart -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Receitas vs Despesas (Anual)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Expenses by Category Chart -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Gastos por Categoria</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart" width="300" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Summary -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calculator"></i> Resumo Financeiro do Ano</h5>
+            </div>
+            <div class="card-body">
+                <div class="row" id="financial-summary">
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-success" id="total-receitas-ano">R$ 0,00</h4>
+                        <div class="text-muted">Total de Receitas</div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-danger" id="total-despesas-ano">R$ 0,00</h4>
+                        <div class="text-muted">Total de Despesas</div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 id="saldo-ano">R$ 0,00</h4>
+                        <div class="text-muted">Saldo do Ano</div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 class="text-info" id="media-mensal">R$ 0,00</h4>
+                        <div class="text-muted">Média Mensal</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Breakdown Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-table"></i> Breakdown Mensal</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="monthly-breakdown">
+                        <thead>
+                            <tr>
+                                <th>Mês</th>
+                                <th class="text-success">Receitas</th>
+                                <th class="text-danger">Despesas</th>
+                                <th>Saldo</th>
+                                <th>Economia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Options -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-download"></i> Opções de Exportação</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-success w-100" onclick="exportExcel()">
+                            <i class="fas fa-file-excel"></i> Exportar Excel
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-danger w-100" onclick="exportPDF()">
+                            <i class="fas fa-file-pdf"></i> Exportar PDF
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="printReport()">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-info w-100" onclick="shareReport()">
+                            <i class="fas fa-share"></i> Compartilhar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+// Initialize reports
+document.addEventListener('DOMContentLoaded', function() {
+    updateCharts();
+});
+
+// Update charts based on filters
+function updateCharts() {
+    const ano = document.getElementById('ano-relatorio').value;
+    const mes = document.getElementById('mes-relatorio').value;
+    
+    // Update monthly chart
+    updateMonthlyChart(ano);
+    
+    // Update category chart
+    updateCategoryChart(ano, mes);
+    
+    // Update financial summary
+    updateFinancialSummary(ano);
+}
+
+// Export functions (placeholder implementations)
+function exportReport() {
+    alert('Funcionalidade de exportação em desenvolvimento');
+}
+
+function exportExcel() {
+    alert('Exportação para Excel em desenvolvimento');
+}
+
+function exportPDF() {
+    alert('Exportação para PDF em desenvolvimento');
+}
+
+function printReport() {
+    window.print();
+}
+
+function shareReport() {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Relatório Financeiro',
+            text: 'Confira meu relatório financeiro',
+            url: window.location.href
+        });
+    } else {
+        alert('Compartilhamento não suportado neste navegador');
+    }
+}
+</script>
+{% endblock %}
