@@ -10,16 +10,15 @@ def require_auth():
     if 'usuario_id' not in session:
         flash('Faça login primeiro!', 'warning')
         return redirect(url_for('login'))
-
+    
     # Verifica se o usuário ainda existe no banco
     usuario = Usuario.query.get(session['usuario_id'])
     if not usuario:
-        # Se o usuário não existe mais, remove a sessão e redireciona
         session.pop('usuario_id', None)
         flash('Sessão expirada. Faça login novamente!', 'warning')
         return redirect(url_for('login'))
-
-    return None # Retorna None se a autenticação for bem-sucedida
+    
+    return None
 
 def get_current_user():
     if 'usuario_id' in session:
@@ -46,97 +45,75 @@ def login():
         if usuario:
             return redirect(url_for('dashboard'))
         else:
-            # Remove sessão inválida se o usuário não for encontrado no banco
+            # Remove sessão inválida
             session.pop('usuario_id', None)
-
+    
     if request.method == 'POST':
-        email = request.form.get('email') # Usar .get() para evitar KeyError
-        senha = request.form.get('senha') # Usar .get() para evitar KeyError
-
-        if not email or not senha:
-             flash('Por favor, preencha email e senha.', 'danger')
-             return render_template('login.html')
-
-        try:
-            usuario = Usuario.query.filter_by(email=email).first()
-
-            if usuario and usuario.check_password(senha):
-                session['usuario_id'] = usuario.id
-                # O Flask lida com a persistência da sessão (cookies) automaticamente
-                flash('Login realizado com sucesso!', 'success')
-                return redirect(url_for('dashboard'))
-            else:
-                flash('Email ou senha incorretos.', 'danger')
-        except Exception as e:
-            # Captura exceções durante o processo de login (ex: problema com o banco)
-            flash(f'Ocorreu um erro durante o login. Tente novamente. Detalhe: {str(e)}', 'danger')
-            # Opcional: logar o erro 'e' para depuração
-
+        email = request.form['email']
+        senha = request.form['senha']
+        usuario = Usuario.query.filter_by(email=email).first()
+        
+        if usuario and usuario.check_password(senha):
+            session['usuario_id'] = usuario.id
+            flash('Login realizado com sucesso!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Email ou senha incorretos.', 'danger')
+    
     return render_template('login.html')
 
 @app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
     if request.method == 'POST':
-        email = request.form.get('email') # Usar .get()
-        senha = request.form.get('senha') # Usar .get()
+        email = request.form['email']
+        senha = request.form['senha']
         nome = request.form.get('nome', '')
-
-        if not email or not senha:
-             flash('Por favor, preencha email e senha.', 'danger')
-             return redirect(url_for('cadastro'))
-
+        
         if Usuario.query.filter_by(email=email).first():
             flash('Email já cadastrado!', 'danger')
             return redirect(url_for('cadastro'))
-
-        try:
-            novo_usuario = Usuario(email=email, nome=nome)
-            novo_usuario.set_password(senha)
-            db.session.add(novo_usuario)
-            # db.session.commit() # Commit inicial para obter o ID do novo usuário
-
-            # Create default categories
-            categorias_default = [
-                ('Salário', 'receita', '#28a745', '💼'),
-                ('Freelance', 'receita', '#17a2b8', '💻'),
-                ('Investimentos', 'receita', '#20c997', '📈'),
-                ('Alimentação', 'despesa', '#dc3545', '🍽️'),
-                ('Transporte', 'despesa', '#fd7e14', '🚗'),
-                ('Moradia', 'despesa', '#6610f2', '🏠'),
-                ('Saúde', 'despesa', '#e83e8c', '🏥'),
-                ('Educação', 'despesa', '#20c997', '📚'),
-                ('Lazer', 'despesa', '#ffc107', '🎮'),
-                ('Outros', 'despesa', '#6c757d', '📦'),
-            ]
-
-            # Associar categorias ao novo usuário antes do commit final
-            for nome_cat, tipo, cor, icone in categorias_default:
-                categoria = Categoria(
-                    nome=nome_cat, tipo=tipo, cor=cor, icone=icone,
-                    usuario_id=novo_usuario.id # Associa ao novo usuário
-                )
-                db.session.add(categoria)
-
-            # Create default account
-            conta_default = Conta(
-                nome='Conta Principal',
-                tipo='conta_corrente',
-                banco='Banco Principal',
-                saldo_inicial=0, # Definir saldo inicial
-                saldo_atual=0, # Definir saldo atual
-                usuario_id=novo_usuario.id # Associa ao novo usuário
+        
+        novo_usuario = Usuario(email=email, nome=nome)
+        novo_usuario.set_password(senha)
+        
+        db.session.add(novo_usuario)
+        db.session.commit()
+        
+        # Create default categories
+        categorias_default = [
+            ('Salário', 'receita', '#28a745', '💼'),
+            ('Freelance', 'receita', '#17a2b8', '💻'),
+            ('Investimentos', 'receita', '#20c997', '📈'),
+            ('Alimentação', 'despesa', '#dc3545', '🍽️'),
+            ('Transporte', 'despesa', '#fd7e14', '🚗'),
+            ('Moradia', 'despesa', '#6610f2', '🏠'),
+            ('Saúde', 'despesa', '#e83e8c', '🏥'),
+            ('Educação', 'despesa', '#20c997', '📚'),
+            ('Lazer', 'despesa', '#ffc107', '🎮'),
+            ('Outros', 'despesa', '#6c757d', '📦'),
+        ]
+        
+        for nome_cat, tipo, cor, icone in categorias_default:
+            categoria = Categoria(
+                nome=nome_cat, tipo=tipo, cor=cor, icone=icone, 
+                usuario_id=novo_usuario.id
             )
-            db.session.add(conta_default)
-
-            db.session.commit() # Commit final após adicionar usuário, categorias e conta
-
-            flash('Cadastro realizado com sucesso! Faça login.', 'success')
-            return redirect(url_for('login'))
-        except Exception as e:
-            db.session.rollback() # Em caso de erro, desfaz as alterações no banco
-            flash(f'Ocorreu um erro ao realizar o cadastro: {str(e)}', 'danger')
-            # Opcional: logar o erro 'e' para depuração
-
+            db.session.add(categoria)
+        
+        # Create default account
+        conta_default = Conta(
+            nome='Conta Principal',
+            tipo='conta_corrente',
+            banco='Banco Principal',
+            usuario_id=novo_usuario.id
+        )
+        db.session.add(conta_default)
+        
+        db.session.commit()
+        
+        flash('Cadastro realizado com sucesso! Faça login.', 'success')
+        return redirect(url_for('login'))
+    
     return render_template('cadastro.html')
 
 @app.route('/logout')
@@ -144,9 +121,6 @@ def logout():
     session.pop('usuario_id', None)
     flash('Você saiu da sessão.', 'info')
     return redirect(url_for('login'))
-
-# ... (restante do seu código para dashboard, transacoes, contas, categorias, orcamentos, relatorios, api)
-# Como essas rotas não foram o foco do problema de login, não foram modificadas neste exemplo.
 
 # Dashboard
 @app.route('/dashboard')
