@@ -10,15 +10,16 @@ def require_auth():
     if 'usuario_id' not in session:
         flash('Faça login primeiro!', 'warning')
         return redirect(url_for('login'))
-    
+
     # Verifica se o usuário ainda existe no banco
     usuario = Usuario.query.get(session['usuario_id'])
     if not usuario:
+        # Se o usuário não existe mais, remove a sessão e redireciona
         session.pop('usuario_id', None)
         flash('Sessão expirada. Faça login novamente!', 'warning')
         return redirect(url_for('login'))
-    
-    return None
+
+    return None # Retorna None se a autenticação for bem-sucedida
 
 def get_current_user():
     if 'usuario_id' in session:
@@ -45,75 +46,97 @@ def login():
         if usuario:
             return redirect(url_for('dashboard'))
         else:
-            # Remove sessão inválida
+            # Remove sessão inválida se o usuário não for encontrado no banco
             session.pop('usuario_id', None)
-    
+
     if request.method == 'POST':
-        email = request.form['email']
-        senha = request.form['senha']
-        usuario = Usuario.query.filter_by(email=email).first()
-        
-        if usuario and usuario.check_password(senha):
-            session['usuario_id'] = usuario.id
-            flash('Login realizado com sucesso!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Email ou senha incorretos.', 'danger')
-    
+        email = request.form.get('email') # Usar .get() para evitar KeyError
+        senha = request.form.get('senha') # Usar .get() para evitar KeyError
+
+        if not email or not senha:
+             flash('Por favor, preencha email e senha.', 'danger')
+             return render_template('login.html')
+
+        try:
+            usuario = Usuario.query.filter_by(email=email).first()
+
+            if usuario and usuario.check_password(senha):
+                session['usuario_id'] = usuario.id
+                # O Flask lida com a persistência da sessão (cookies) automaticamente
+                flash('Login realizado com sucesso!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Email ou senha incorretos.', 'danger')
+        except Exception as e:
+            # Captura exceções durante o processo de login (ex: problema com o banco)
+            flash(f'Ocorreu um erro durante o login. Tente novamente. Detalhe: {str(e)}', 'danger')
+            # Opcional: logar o erro 'e' para depuração
+
     return render_template('login.html')
 
 @app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
     if request.method == 'POST':
-        email = request.form['email']
-        senha = request.form['senha']
+        email = request.form.get('email') # Usar .get()
+        senha = request.form.get('senha') # Usar .get()
         nome = request.form.get('nome', '')
-        
+
+        if not email or not senha:
+             flash('Por favor, preencha email e senha.', 'danger')
+             return redirect(url_for('cadastro'))
+
         if Usuario.query.filter_by(email=email).first():
             flash('Email já cadastrado!', 'danger')
             return redirect(url_for('cadastro'))
-        
-        novo_usuario = Usuario(email=email, nome=nome)
-        novo_usuario.set_password(senha)
-        
-        db.session.add(novo_usuario)
-        db.session.commit()
-        
-        # Create default categories
-        categorias_default = [
-            ('Salário', 'receita', '#28a745', '💼'),
-            ('Freelance', 'receita', '#17a2b8', '💻'),
-            ('Investimentos', 'receita', '#20c997', '📈'),
-            ('Alimentação', 'despesa', '#dc3545', '🍽️'),
-            ('Transporte', 'despesa', '#fd7e14', '🚗'),
-            ('Moradia', 'despesa', '#6610f2', '🏠'),
-            ('Saúde', 'despesa', '#e83e8c', '🏥'),
-            ('Educação', 'despesa', '#20c997', '📚'),
-            ('Lazer', 'despesa', '#ffc107', '🎮'),
-            ('Outros', 'despesa', '#6c757d', '📦'),
-        ]
-        
-        for nome_cat, tipo, cor, icone in categorias_default:
-            categoria = Categoria(
-                nome=nome_cat, tipo=tipo, cor=cor, icone=icone, 
-                usuario_id=novo_usuario.id
+
+        try:
+            novo_usuario = Usuario(email=email, nome=nome)
+            novo_usuario.set_password(senha)
+            db.session.add(novo_usuario)
+            # db.session.commit() # Commit inicial para obter o ID do novo usuário
+
+            # Create default categories
+            categorias_default = [
+                ('Salário', 'receita', '#28a745', '💼'),
+                ('Freelance', 'receita', '#17a2b8', '💻'),
+                ('Investimentos', 'receita', '#20c997', '📈'),
+                ('Alimentação', 'despesa', '#dc3545', '🍽️'),
+                ('Transporte', 'despesa', '#fd7e14', '🚗'),
+                ('Moradia', 'despesa', '#6610f2', '🏠'),
+                ('Saúde', 'despesa', '#e83e8c', '🏥'),
+                ('Educação', 'despesa', '#20c997', '📚'),
+                ('Lazer', 'despesa', '#ffc107', '🎮'),
+                ('Outros', 'despesa', '#6c757d', '📦'),
+            ]
+
+            # Associar categorias ao novo usuário antes do commit final
+            for nome_cat, tipo, cor, icone in categorias_default:
+                categoria = Categoria(
+                    nome=nome_cat, tipo=tipo, cor=cor, icone=icone,
+                    usuario_id=novo_usuario.id # Associa ao novo usuário
+                )
+                db.session.add(categoria)
+
+            # Create default account
+            conta_default = Conta(
+                nome='Conta Principal',
+                tipo='conta_corrente',
+                banco='Banco Principal',
+                saldo_inicial=0, # Definir saldo inicial
+                saldo_atual=0, # Definir saldo atual
+                usuario_id=novo_usuario.id # Associa ao novo usuário
             )
-            db.session.add(categoria)
-        
-        # Create default account
-        conta_default = Conta(
-            nome='Conta Principal',
-            tipo='conta_corrente',
-            banco='Banco Principal',
-            usuario_id=novo_usuario.id
-        )
-        db.session.add(conta_default)
-        
-        db.session.commit()
-        
-        flash('Cadastro realizado com sucesso! Faça login.', 'success')
-        return redirect(url_for('login'))
-    
+            db.session.add(conta_default)
+
+            db.session.commit() # Commit final após adicionar usuário, categorias e conta
+
+            flash('Cadastro realizado com sucesso! Faça login.', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback() # Em caso de erro, desfaz as alterações no banco
+            flash(f'Ocorreu um erro ao realizar o cadastro: {str(e)}', 'danger')
+            # Opcional: logar o erro 'e' para depuração
+
     return render_template('cadastro.html')
 
 @app.route('/logout')
@@ -121,6 +144,9 @@ def logout():
     session.pop('usuario_id', None)
     flash('Você saiu da sessão.', 'info')
     return redirect(url_for('login'))
+
+# ... (restante do seu código para dashboard, transacoes, contas, categorias, orcamentos, relatorios, api)
+# Como essas rotas não foram o foco do problema de login, não foram modificadas neste exemplo.
 
 # Dashboard
 @app.route('/dashboard')
@@ -269,37 +295,30 @@ def transacoes():
                          hoje=date.today())
 
 @app.route('/transacoes/nova', methods=['GET', 'POST'])
-<div class="row">
-    <div class="col-md-3 mb-3">
-        <label for="parcelas" class="form-label">Parcelas</label>
-        <input type="number" class="form-control" id="parcelas" name="parcelas" min="1" value="1">
-    </div>
-    <div class="col-md-3 mb-3">
-        <label for="intervalo_parcelas" class="form-label">Intervalo (dias)</label>
-        <input type="number" class="form-control" id="intervalo_parcelas" name="intervalo_parcelas" min="1" value="30">
-    </div>
-    <div class="col-md-3 mb-3">
-        <label for="tipo_parcelamento" class="form-label">Tipo de Parcelamento</label>
-        <select class="form-select" id="tipo_parcelamento" name="tipo_parcelamento">
-            <option value="mensal">Mensal</option>
-            <option value="quinzenal">Quinzenal</option>
-            <option value="semanal">Semanal</option>
-        </select>
-    </div>
-    <div class="col-md-3 mb-3 d-flex align-items-end">
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="paga" name="paga">
-            <label class="form-check-label" for="paga">
-                Transação já paga
-            </label>
-        </div>
-    </div>
-</div>
-<div class="mb-3">
-    <label for="observacoes" class="form-label">Observações</label>
-    <textarea class="form-control" id="observacoes" name="observacoes" rows="2"></textarea>
-</div>
-
+def nova_transacao():
+    auth_check = require_auth()
+    if auth_check:
+        return auth_check
+    
+    usuario = get_current_user()
+    
+    if request.method == 'POST':
+        try:
+            transacao = Transacao(
+                descricao=request.form['descricao'],
+                valor=Decimal(request.form['valor']),
+                tipo=request.form['tipo'],
+                data=datetime.strptime(request.form['data'], '%Y-%m-%d').date(),
+                data_vencimento=datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date() if request.form.get('data_vencimento') else None,
+                paga=bool(request.form.get('paga')),
+                observacoes=request.form.get('observacoes', ''),
+                usuario_id=usuario.id,
+                conta_id=int(request.form['conta_id']),
+                categoria_id=int(request.form['categoria_id'])
+            )
+            
+            db.session.add(transacao)
+            
             # Update account balance if transaction is paid
             if transacao.paga:
                 conta = Conta.query.get(transacao.conta_id)
