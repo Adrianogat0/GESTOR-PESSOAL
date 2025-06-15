@@ -269,27 +269,29 @@ def transacoes():
                          hoje=date.today())
 
 @app.route('/transacoes/nova', methods=['GET', 'POST'])
-from datetime import timedelta
-
-parcelas = int(request.form.get("parcelas", 1))
-intervalo = int(request.form.get("intervalo_parcelas", 30))
-data_base = datetime.strptime(request.form["data"], "%Y-%m-%d")
-
-for i in range(parcelas):
-    nova_transacao = Transacao(
-        descricao=request.form["descricao"],
-        valor=float(request.form["valor"]),
-        tipo=request.form["tipo"],
-        data=data_base + timedelta(days=i * intervalo),
-        data_vencimento=request.form.get("data_vencimento"),
-        categoria_id=request.form["categoria_id"],
-        conta_id=request.form["conta_id"],
-        observacoes=request.form["observacoes"],
-        paga="paga" in request.form
-    )
-    db.session.add(nova_transacao)
-
-db.session.commit()
+def nova_transacao():
+    auth_check = require_auth()
+    if auth_check:
+        return auth_check
+    
+    usuario = get_current_user()
+    
+    if request.method == 'POST':
+        try:
+            transacao = Transacao(
+                descricao=request.form['descricao'],
+                valor=Decimal(request.form['valor']),
+                tipo=request.form['tipo'],
+                data=datetime.strptime(request.form['data'], '%Y-%m-%d').date(),
+                data_vencimento=datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date() if request.form.get('data_vencimento') else None,
+                paga=bool(request.form.get('paga')),
+                observacoes=request.form.get('observacoes', ''),
+                usuario_id=usuario.id,
+                conta_id=int(request.form['conta_id']),
+                categoria_id=int(request.form['categoria_id'])
+            )
+            
+            db.session.add(transacao)
             
             # Update account balance if transaction is paid
             if transacao.paga:
