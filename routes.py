@@ -273,25 +273,114 @@ def nova_transacao():
     auth_check = require_auth()
     if auth_check:
         return auth_check
-    
+
     usuario = get_current_user()
-    
+
     if request.method == 'POST':
         try:
-            transacao = Transacao(
-                descricao=request.form['descricao'],
-                valor=Decimal(request.form['valor']),
-                tipo=request.form['tipo'],
-                data=datetime.strptime(request.form['data'], '%Y-%m-%d').date(),
-                data_vencimento=datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date() if request.form.get('data_vencimento') else None,
-                paga=bool(request.form.get('paga')),
-                observacoes=request.form.get('observacoes', ''),
-                usuario_id=usuario.id,
-                conta_id=int(request.form['conta_id']),
-                categoria_id=int(request.form['categoria_id'])
-            )
-            
-            db.session.add(transacao)
+            descricao = request.form['descricao']
+            valor_total = Decimal(request.form['valor'])
+            tipo = request.form['tipo']
+            data_primeira_parcela = datetime.strptime(request.form['data'], '%Y-%m-%d').date() # Usar como data da primeira parcela
+            data_vencimento_primeira = datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date() if request.form.get('data_vencimento') else data_primeira_parcela
+
+            paga_inicial = bool(request.form.get('paga'))
+            observacoes = request.form.get('observacoes', '')
+            conta_id = int(request.form['conta_id'])
+            categoria_id = int(request.form['categoria_id'])
+
+            # Novos campos para transação parcelada
+            is_parcelada = request.form.get('is_parcelada') == 'on' # Assumindo um checkbox com name='is_parcelada'
+            num_parcelas = int(request.form.get('num_parcelas', 1)) # Assumindo um campo com name='num_parcelas', default 1
+
+            transacoes_a_adicionar = []
+            transacao_original = None
+
+            if is_parcelada and num_parcelas > 1:
+                valor_parcela = valor_total / num_parcelas
+
+                for i in range(num_parcelas):
+                    # Calcula a data e data de vencimento para cada parcela
+                    # Adiciona 'i' meses à data da primeira parcela/vencimento
+                    mes_parcela = data_primeira_parcela.month + i
+                    ano_parcela = data_primeira_parcela.year + (mes_parcela - 1) // 12
+                    mes_parcela = (mes_parcela - 1) % 12 + 1
+                    dia_parcela = min(data_primeira_parcela.day, (date(ano_parcela, mes_parcela + 1, 1) - date(ano_parcela, mes_parcela, 1)).days) # Evita problemas com dias em meses diferentes
+
+                    data_parcela = date(ano_parcela, mes_parcela, dia_parcela)
+                    data_vencimento_parcela = date(ano_parcela, mes_parcela, min(data_vencimento_primeira.day, (date(ano_parcela, mes_parcela + 1, 1) - date(ano_parcela, mes_parcela, 1)).days) if data_vencimento_primeira else dia_parcela)
+
+
+                    descricao_parcela = f"{descricao} ({i + 1}/{num_parcelas})"
+
+                    parcela = Transacao(
+                        descricao=descricao_parcela,
+                        valor=valor_parcela,
+                        tipo=tipo,
+                        data=data_parcela,
+                        data_vencimento=data_vencimento_parcela,
+                        paga=False, # Parcelas futuras geralmente não são pagas inicialmente
+                        observacoes=observacoes,
+                        usuario_id=usuario.id,
+                        conta_id=conta_id,
+                        categoria_id=categoria_id
+                    )
+
+                    # Associa a parcela à transação original (a primeira parcela)
+                    if i == 0:
+                         # Se quiser ter uma transação "pai" separada, crie ela aqui antes do loop
+                         # e associe as parcelas a ela. Neste exemplo, a primeira parcela é a "pai".
+                         transacao_original = parcela # A primeira parcela é a "original" para as outras
+                         transacoes_a_adicionar.append(parcela)
+                    else:
+                         parcela.parcela_original_id = transacao_original.id # Associa à primeira parcela
+                         transacoes_a_adicionar.append(parcela)
+
+            else:
+                # Lógica para transação única (não parcelada)
+                transacao_unica = Transacao(
+                    descricao=descricao,
+                    valor=valor_total,
+                    tipo=tipo,
+                    data=data_primeira_parcela,
+                    data_vencimento=data_vencimento_primeira,
+                    paga=paga_inicial,
+                    observacoes=observacoes,
+                    usuario_id=usuario.id,
+                    conta_id=conta_id,
+                    categoria_id=categoria_id
+                )
+                transacoes_a_adicionar.append(transacao_unica)
+
+                # Se a transação única for paga, atualiza o saldo da conta imediatamente
+                if transacao_unica.paga:
+                     conta = Conta.query.get(conta_id)
+                     if transacao_unica.tipo == 'receita':
+                         conta.saldo_atual += transacao_unica.valor
+                     else:
+                         conta.saldo_atual -= transacao_unica.valor
+
+
+            # Adiciona todas as transações (parcelas ou única) ao banco
+            db.session.add_all(transacoes_a_adicionar)
+            db.session.commit()
+
+            flash('Transação(ões) criada(s) com sucesso!', 'success')
+            return redirect(url_for('transacoes'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao criar transação(ões): {str(e)}', 'danger')
+            # Opcional: logar o erro 'e'
+
+    # Código para a requisição GET (exibir o formulário)
+    categorias = Categoria.query.filter(Categoria.usuario_id == usuario.id, Categoria.ativa == True).all()
+    contas = Conta.query.filter(Conta.usuario_id == usuario.id, Conta.ativa == True).all()
+    return render_template('transactions.html',
+                         categorias=categorias,
+                         contas=contas,
+                         nova_transacao=True,
+                         transacoes=None) # Passar transacoes=None quando estiver no formulário de criação
             
             # Update account balance if transaction is paid
             if transacao.paga:
