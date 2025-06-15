@@ -269,30 +269,37 @@ def transacoes():
                          hoje=date.today())
 
 @app.route('/transacoes/nova', methods=['GET', 'POST'])
-def nova_transacao():
-    auth_check = require_auth()
-    if auth_check:
-        return auth_check
-    
-    usuario = get_current_user()
-    
-    if request.method == 'POST':
-        try:
-            transacao = Transacao(
-                descricao=request.form['descricao'],
-                valor=Decimal(request.form['valor']),
-                tipo=request.form['tipo'],
-                data=datetime.strptime(request.form['data'], '%Y-%m-%d').date(),
-                data_vencimento=datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date() if request.form.get('data_vencimento') else None,
-                paga=bool(request.form.get('paga')),
-                observacoes=request.form.get('observacoes', ''),
-                usuario_id=usuario.id,
-                conta_id=int(request.form['conta_id']),
-                categoria_id=int(request.form['categoria_id'])
-            )
-            
-            db.session.add(transacao)
-            
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label for="parcelas" class="form-label">Parcelas</label>
+        <input type="number" class="form-control" id="parcelas" name="parcelas" min="1" value="1">
+    </div>
+    <div class="col-md-3 mb-3">
+        <label for="intervalo_parcelas" class="form-label">Intervalo (dias)</label>
+        <input type="number" class="form-control" id="intervalo_parcelas" name="intervalo_parcelas" min="1" value="30">
+    </div>
+    <div class="col-md-3 mb-3">
+        <label for="tipo_parcelamento" class="form-label">Tipo de Parcelamento</label>
+        <select class="form-select" id="tipo_parcelamento" name="tipo_parcelamento">
+            <option value="mensal">Mensal</option>
+            <option value="quinzenal">Quinzenal</option>
+            <option value="semanal">Semanal</option>
+        </select>
+    </div>
+    <div class="col-md-3 mb-3 d-flex align-items-end">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="paga" name="paga">
+            <label class="form-check-label" for="paga">
+                Transação já paga
+            </label>
+        </div>
+    </div>
+</div>
+<div class="mb-3">
+    <label for="observacoes" class="form-label">Observações</label>
+    <textarea class="form-control" id="observacoes" name="observacoes" rows="2"></textarea>
+</div>
+
             # Update account balance if transaction is paid
             if transacao.paga:
                 conta = Conta.query.get(transacao.conta_id)
