@@ -1,27 +1,17 @@
 import os
 from dotenv import load_dotenv
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-# Load environment variables from .env file for local development
 load_dotenv()
 
-class Base(DeclarativeBase):
-    pass
+from extensions import db  # Importa a instância única do db
 
-db = SQLAlchemy(model_class=Base)
-
-# Create the app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure the database
 database_url = os.environ.get("DATABASE_URL", "sqlite:///financeiro.db")
-
-# Fix for SQLAlchemy 1.4+ with postgres URLs from some providers
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -32,13 +22,12 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Initialize the app with the extension
 db.init_app(app)
 
 with app.app_context():
-    # Import models to ensure tables are created
-    import models
-    import routes
-    
-    # Create all tables
-    db.create_all()
+    import models  # Importa seus modelos aqui
+    import routes  # Importa suas rotas aqui
+    db.create_all()  # Cria as tabelas do banco (se ainda não existirem)
+
+if __name__ == "__main__":
+    app.run(debug=True)
