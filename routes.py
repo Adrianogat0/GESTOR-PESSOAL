@@ -77,13 +77,13 @@ def login():
 @app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
     if request.method == 'POST':
-        email = request.form.get('email')
-        senha = request.form.get('senha')
+        email = request.form.get('email') # Usar .get()
+        senha = request.form.get('senha') # Usar .get()
         nome = request.form.get('nome', '')
 
         if not email or not senha:
-            flash('Por favor, preencha email e senha.', 'danger')
-            return redirect(url_for('cadastro'))
+             flash('Por favor, preencha email e senha.', 'danger')
+             return redirect(url_for('cadastro'))
 
         if Usuario.query.filter_by(email=email).first():
             flash('Email já cadastrado!', 'danger')
@@ -93,8 +93,9 @@ def cadastro():
             novo_usuario = Usuario(email=email, nome=nome)
             novo_usuario.set_password(senha)
             db.session.add(novo_usuario)
-            db.session.flush()  # Aqui geramos o ID do usuário no banco
+            # db.session.commit() # Commit inicial para obter o ID do novo usuário
 
+            # Create default categories
             categorias_default = [
                 ('Salário', 'receita', '#28a745', '💼'),
                 ('Freelance', 'receita', '#17a2b8', '💻'),
@@ -108,34 +109,33 @@ def cadastro():
                 ('Outros', 'despesa', '#6c757d', '📦'),
             ]
 
+            # Associar categorias ao novo usuário antes do commit final
             for nome_cat, tipo, cor, icone in categorias_default:
                 categoria = Categoria(
-                    nome=nome_cat,
-                    tipo=tipo,
-                    cor=cor,
-                    icone=icone,
-                    usuario_id=novo_usuario.id
+                    nome=nome_cat, tipo=tipo, cor=cor, icone=icone,
+                    usuario_id=novo_usuario.id # Associa ao novo usuário
                 )
                 db.session.add(categoria)
 
+            # Create default account
             conta_default = Conta(
                 nome='Conta Principal',
                 tipo='conta_corrente',
                 banco='Banco Principal',
-                saldo_inicial=0,
-                saldo_atual=0,
-                usuario_id=novo_usuario.id
+                saldo_inicial=0, # Definir saldo inicial
+                saldo_atual=0, # Definir saldo atual
+                usuario_id=novo_usuario.id # Associa ao novo usuário
             )
             db.session.add(conta_default)
 
-            db.session.commit()
+            db.session.commit() # Commit final após adicionar usuário, categorias e conta
 
             flash('Cadastro realizado com sucesso! Faça login.', 'success')
             return redirect(url_for('login'))
-
         except Exception as e:
-            db.session.rollback()
+            db.session.rollback() # Em caso de erro, desfaz as alterações no banco
             flash(f'Ocorreu um erro ao realizar o cadastro: {str(e)}', 'danger')
+            # Opcional: logar o erro 'e' para depuração
 
     return render_template('cadastro.html')
 
@@ -223,11 +223,6 @@ def dashboard():
                          contas=contas)
 
 # Transactions
-from dateutil.relativedelta import relativedelta  # IMPORTAÇÃO NECESSÁRIA no topo do seu arquivo
-from decimal import Decimal
-from datetime import datetime, date
-
-# Transactions
 @app.route('/transacoes')
 def transacoes():
     auth_check = require_auth()
@@ -309,57 +304,31 @@ def nova_transacao():
     
     if request.method == 'POST':
         try:
-            descricao = request.form['descricao']
-            valor_total = Decimal(request.form['valor'])
-            tipo = request.form['tipo']
-            data_primeira = datetime.strptime(request.form['data'], '%Y-%m-%d').date()
-            data_vencimento_primeira = None
-            if request.form.get('data_vencimento'):
-                data_vencimento_primeira = datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date()
-            paga = bool(request.form.get('paga'))
-            observacoes = request.form.get('observacoes', '')
-            conta_id = int(request.form['conta_id'])
-            categoria_id = int(request.form['categoria_id'])
-            qtd_parcelas = int(request.form.get('parcelas', 1))  # NOVO CAMPO: número de parcelas, default = 1
-
-            valor_parcela = (valor_total / qtd_parcelas).quantize(Decimal('0.01'))
-            valor_ajustado_total = valor_parcela * qtd_parcelas
-            diferenca = valor_total - valor_ajustado_total  # para ajuste da última parcela
-
-            for i in range(qtd_parcelas):
-                valor = valor_parcela
-                if i == qtd_parcelas - 1:
-                    valor += diferenca  # ajusta última parcela para bater o total exato
-                
-                data_parcela = data_primeira + relativedelta(months=i)
-                data_vencimento_parcela = None
-                if data_vencimento_primeira:
-                    data_vencimento_parcela = data_vencimento_primeira + relativedelta(months=i)
-                
-                transacao = Transacao(
-                    descricao=f"{descricao} ({i+1}/{qtd_parcelas})",
-                    valor=valor,
-                    tipo=tipo,
-                    data=data_parcela,
-                    data_vencimento=data_vencimento_parcela,
-                    paga=paga if qtd_parcelas == 1 else False,  # se parcelado, parcelas começam como não pagas
-                    observacoes=observacoes,
-                    usuario_id=usuario.id,
-                    conta_id=conta_id,
-                    categoria_id=categoria_id
-                )
-                db.session.add(transacao)
-
-                # Atualiza saldo da conta apenas se transação única e paga
-                if transacao.paga:
-                    conta = Conta.query.get(conta_id)
-                    if tipo == 'receita':
-                        conta.saldo_atual += valor
-                    else:
-                        conta.saldo_atual -= valor
+            transacao = Transacao(
+                descricao=request.form['descricao'],
+                valor=Decimal(request.form['valor']),
+                tipo=request.form['tipo'],
+                data=datetime.strptime(request.form['data'], '%Y-%m-%d').date(),
+                data_vencimento=datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date() if request.form.get('data_vencimento') else None,
+                paga=bool(request.form.get('paga')),
+                observacoes=request.form.get('observacoes', ''),
+                usuario_id=usuario.id,
+                conta_id=int(request.form['conta_id']),
+                categoria_id=int(request.form['categoria_id'])
+            )
+            
+            db.session.add(transacao)
+            
+            # Update account balance if transaction is paid
+            if transacao.paga:
+                conta = Conta.query.get(transacao.conta_id)
+                if transacao.tipo == 'receita':
+                    conta.saldo_atual += transacao.valor
+                else:
+                    conta.saldo_atual -= transacao.valor
             
             db.session.commit()
-            flash(f'Transação{" parcelada" if qtd_parcelas > 1 else ""} criada com sucesso!', 'success')
+            flash('Transação criada com sucesso!', 'success')
             return redirect(url_for('transacoes'))
         
         except Exception as e:
