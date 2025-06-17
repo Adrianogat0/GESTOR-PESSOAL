@@ -149,6 +149,7 @@ def logout():
 # Como essas rotas não foram o foco do problema de login, não foram modificadas neste exemplo.
 
 # Dashboard
+
 @app.route('/dashboard')
 def dashboard():
     auth_check = require_auth()
@@ -227,6 +228,23 @@ from dateutil.relativedelta import relativedelta  # IMPORTAÇÃO NECESSÁRIA no 
 from decimal import Decimal
 from datetime import datetime, date
 
+@app.route('/dashboard/nova-transacao', methods=['GET', 'POST'])
+def nova_transacao_dashboard():
+    auth_check = require_auth()
+    if auth_check:
+        return auth_check
+
+    usuario = get_current_user()
+    
+    contas = Conta.query.filter_by(usuario_id=usuario.id, ativa=True).all()
+    categorias = Categoria.query.filter_by(usuario_id=usuario.id).all()
+
+    if request.method == 'POST':
+        # Lógica para salvar a nova transação (você pode completar depois)
+        pass
+
+    return render_template('nova_transacao_dashboard.html', contas=contas, categorias=categorias)
+
 # Transactions
 @app.route('/transacoes')
 def transacoes():
@@ -244,9 +262,13 @@ def transacoes():
     venc_inicio = request.args.get('venc_inicio', '')
     venc_fim = request.args.get('venc_fim', '')
     
-    query = Transacao.query.filter(Transacao.usuario_id == usuario.id)
+    # Filtrar transações do usuário E não pagas
+    query = Transacao.query.filter(
+        Transacao.usuario_id == usuario.id,
+        Transacao.paga == False
+    )
     
-    # Apply filters
+    # Aplicar filtros opcionais
     if tipo_filtro:
         query = query.filter(Transacao.tipo == tipo_filtro)
     if categoria_filtro:
@@ -262,7 +284,7 @@ def transacoes():
     if venc_fim:
         query = query.filter(Transacao.data_vencimento <= datetime.strptime(venc_fim, '%Y-%m-%d').date())
     
-    # Calculate totals for filtered results
+    # Calcular totais somente para as transações não pagas (filtradas)
     filtered_transacoes = query.all()
     total_receitas = sum(t.valor for t in filtered_transacoes if t.tipo == 'receita')
     total_despesas = sum(t.valor for t in filtered_transacoes if t.tipo == 'despesa')
@@ -275,7 +297,7 @@ def transacoes():
     categorias = Categoria.query.filter(Categoria.usuario_id == usuario.id, Categoria.ativa == True).all()
     contas = Conta.query.filter(Conta.usuario_id == usuario.id, Conta.ativa == True).all()
     
-    # Format totals for display
+    # Formatar valores para exibição
     total_receitas_formatado = f"R$ {total_receitas:.2f}"
     total_despesas_formatado = f"R$ {total_despesas:.2f}"
     total_saldo_formatado = f"R$ {total_saldo:.2f}"
@@ -298,6 +320,7 @@ def transacoes():
                          total_despesas_formatado=total_despesas_formatado,
                          total_saldo_formatado=total_saldo_formatado,
                          hoje=date.today())
+
 
 @app.route('/transacoes/nova', methods=['GET', 'POST'])
 def nova_transacao():
@@ -380,27 +403,43 @@ def pagar_transacao(id):
     auth_check = require_auth()
     if auth_check:
         return auth_check
-    
+
     usuario = get_current_user()
     transacao = Transacao.query.filter(
         Transacao.id == id,
         Transacao.usuario_id == usuario.id
     ).first_or_404()
-    
+
     if not transacao.paga:
         transacao.paga = True
-        
-        # Update account balance
+
+        # Atualiza saldo da conta
         conta = Conta.query.get(transacao.conta_id)
         if transacao.tipo == 'receita':
             conta.saldo_atual += transacao.valor
         else:
             conta.saldo_atual -= transacao.valor
-        
+
         db.session.commit()
         flash('Transação marcada como paga!', 'success')
-    
-    return redirect(url_for('transacoes'))
+
+    # Captura os filtros atuais da URL (se houver)
+    filtros = {
+        'page': request.args.get('page'),
+        'tipo': request.args.get('tipo'),
+        'categoria': request.args.get('categoria'),
+        'conta': request.args.get('conta'),
+        'data_inicio': request.args.get('data_inicio'),
+        'data_fim': request.args.get('data_fim'),
+        'venc_inicio': request.args.get('venc_inicio'),
+        'venc_fim': request.args.get('venc_fim')
+    }
+
+    # Remove chaves com valor None para não poluir a URL
+    filtros_limpos = {k: v for k, v in filtros.items() if v}
+
+    return redirect(url_for('transacoes', **filtros_limpos))
+
 
 @app.route('/transacoes/<int:id>/editar', methods=['GET', 'POST'])
 def editar_transacao(id):
@@ -498,6 +537,7 @@ def excluir_transacao(id):
         flash(f'Erro ao excluir transação: {str(e)}', 'danger')
     
     return redirect(url_for('transacoes'))
+
 
 # Accounts
 @app.route('/contas')
@@ -720,3 +760,78 @@ def api_gastos_categoria(ano, mes):
         })
     
     return jsonify(dados)
+
+# Lista de movimentações pagas (receitas/despesas pagas)
+@app.route('/movimentacoes')
+def movimentacoes():
+    auth_check = require_auth()
+    if auth_check:
+        return auth_check
+
+    usuario = get_current_user()
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
+    movimentacoes_pagas = Transacao.query.filter_by(
+        usuario_id=usuario.id,
+        paga=True
+    ).order_by(Transacao.data.desc()).paginate(page=page, per_page=per_page)
+
+    return render_template('movimentacoes.html', movimentacoes=movimentacoes_pagas)
+
+# Excluir movimentação do histórico
+@app.route('/movimentacoes/excluir/<int:id>', methods=['POST'])
+def excluir_movimentacao(id):
+    auth_check = require_auth()
+    if auth_check:
+        return auth_check
+
+    transacao = Transacao.query.get_or_404(id)
+    usuario = get_current_user()
+
+    if transacao.usuario_id != usuario.id:
+        flash('Operação não autorizada.', 'danger')
+        return redirect(url_for('movimentacoes'))
+
+    db.session.delete(transacao)
+    db.session.commit()
+    flash('Movimentação excluída com sucesso!', 'success')
+    return redirect(url_for('movimentacoes'))
+
+# Adicionar nova movimentação manualmente
+@app.route('/movimentacoes/nova', methods=['GET', 'POST'])
+def nova_movimentacao():
+    auth_check = require_auth()
+    if auth_check:
+        return auth_check
+
+    usuario = get_current_user()
+
+    if request.method == 'POST':
+        tipo = request.form['tipo']
+        categoria_id = request.form['categoria_id']
+        conta_id = request.form['conta_id']
+        valor = Decimal(request.form['valor'].replace(',', '.'))
+        data = datetime.strptime(request.form['data'], '%Y-%m-%d')
+        descricao = request.form['descricao']
+
+        nova = Transacao(
+            tipo=tipo,
+            categoria_id=categoria_id,
+            conta_id=conta_id,
+            valor=valor,
+            data=data,
+            descricao=descricao,
+            paga=True,  # já entra como paga
+            usuario_id=usuario.id
+        )
+
+        db.session.add(nova)
+        db.session.commit()
+        flash('Movimentação adicionada com sucesso!', 'success')
+        return redirect(url_for('movimentacoes'))
+
+    categorias = Categoria.query.filter_by(usuario_id=usuario.id).all()
+    contas = Conta.query.filter_by(usuario_id=usuario.id).all()
+    return render_template('nova_movimentacao.html', categorias=categorias, contas=contas)
+
