@@ -834,4 +834,3 @@ def nova_movimentacao():
     categorias = Categoria.query.filter_by(usuario_id=usuario.id).all()
     contas = Conta.query.filter_by(usuario_id=usuario.id).all()
     return render_template('nova_movimentacao.html', categorias=categorias, contas=contas)
-
