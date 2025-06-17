@@ -29,6 +29,9 @@
                 <a href="{{ url_for('transacoes') }}" class="nav-link {% if request.endpoint in ['transacoes', 'nova_transacao'] %}active{% endif %}">
                     <i class="fas fa-exchange-alt"></i> Transações
                 </a>
+                <a href="{{ url_for('movimentacoes') }}" class="nav-link {% if request.endpoint == 'movimentacoes' %}active{% endif %}">
+                    <i class="fas fa-receipt"></i> Movimentações
+                </a>
                 <a href="{{ url_for('contas') }}" class="nav-link {% if request.endpoint in ['contas', 'nova_conta'] %}active{% endif %}">
                     <i class="fas fa-university"></i> Contas
                 </a>
