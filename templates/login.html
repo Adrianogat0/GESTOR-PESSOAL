@@ -2,7 +2,7 @@
 
 {% block title %}Login - Meu Financeiro{% endblock %}
 
-{% block content %}
+{% block auth_content %}
 <div class="login-container">
     <div class="login-card">
         <div class="text-center mb-4">
@@ -10,15 +10,21 @@
             <p class="text-muted">Faça login para acessar sua conta</p>
         </div>
         
-        <form method="POST" action="{{ url_for('login') }}" novalidate>
+        <form method="POST" novalidate>
             <div class="mb-3">
                 <label for="email" class="form-label">E-mail</label>
                 <input type="email" class="form-control" id="email" name="email" required>
+                <div class="invalid-feedback">
+                    Por favor, insira um e-mail válido.
+                </div>
             </div>
             
             <div class="mb-3">
                 <label for="senha" class="form-label">Senha</label>
                 <input type="password" class="form-control" id="senha" name="senha" required>
+                <div class="invalid-feedback">
+                    Por favor, insira sua senha.
+                </div>
             </div>
             
             <button type="submit" class="btn btn-primary w-100 mb-3">
