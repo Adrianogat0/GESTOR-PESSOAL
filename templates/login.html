@@ -1,18 +1,36 @@
-<form method="POST" action="{{ url_for('login') }}" novalidate>
-    <!-- Se usar Flask-WTF -->
-    {# {{ form.hidden_tag() }} #}
+{% extends "base.html" %}
 
-    <div class="mb-3">
-        <label for="email" class="form-label">E-mail</label>
-        <input type="email" class="form-control" id="email" name="email" required>
+{% block title %}Login - Meu Financeiro{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="text-center mb-4">
+            <h2 class="text-primary"><i class="fas fa-wallet"></i> Meu Financeiro</h2>
+            <p class="text-muted">Faça login para acessar sua conta</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('login') }}" novalidate>
+            <div class="mb-3">
+                <label for="email" class="form-label">E-mail</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="senha" class="form-label">Senha</label>
+                <input type="password" class="form-control" id="senha" name="senha" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100 mb-3">
+                <i class="fas fa-sign-in-alt"></i> Entrar
+            </button>
+        </form>
+        
+        <div class="text-center">
+            <p class="mb-0">Não tem uma conta? 
+                <a href="{{ url_for('cadastro') }}" class="text-decoration-none">Cadastre-se aqui</a>
+            </p>
+        </div>
     </div>
-
-    <div class="mb-3">
-        <label for="senha" class="form-label">Senha</label>
-        <input type="password" class="form-control" id="senha" name="senha" required>
-    </div>
-
-    <button type="submit" class="btn btn-primary w-100 mb-3">
-        <i class="fas fa-sign-in-alt"></i> Entrar
-    </button>
-</form>
+</div>
+{% endblock %}
