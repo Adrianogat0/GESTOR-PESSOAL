@@ -82,25 +82,37 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const valorInput = document.getElementById("valor");
-        const parcelasInput = document.getElementById("parcelas");
-        const preview = document.getElementById("parcelas-preview");
+document.addEventListener("DOMContentLoaded", function () {
+    const valorInput = document.getElementById("valor");
+    const parcelasInput = document.getElementById("parcelas");
+    const dataInput = document.getElementById("data_vencimento");
+    const preview = document.getElementById("parcelas-preview");
 
-        function atualizarPreviewParcelas() {
-            const valor = parseFloat(valorInput.value) || 0;
-            const parcelas = parseInt(parcelasInput.value) || 1;
+    function adicionarMes(data, meses) {
+        const novaData = new Date(data);
+        novaData.setMonth(novaData.getMonth() + meses);
+        return novaData.toLocaleDateString('pt-BR');
+    }
 
-            if (parcelas > 1 && valor > 0) {
-                const valorParcela = (valor / parcelas).toFixed(2);
-                preview.textContent = `Valor aproximado de cada parcela: R$ ${valorParcela}`;
-            } else {
-                preview.textContent = "";
+    function atualizarPreviewParcelas() {
+        const valor = parseFloat(valorInput.value) || 0;
+        const parcelas = parseInt(parcelasInput.value) || 1;
+        const dataBase = new Date(dataInput.value);
+        preview.innerHTML = "";
+
+        if (parcelas > 1 && valor > 0 && dataInput.value) {
+            let html = "";
+            for (let i = 0; i < parcelas; i++) {
+                const dataParcela = adicionarMes(dataBase, i);
+                html += `<div>Parcela ${i + 1}: R$ ${valor.toFixed(2)} - Vencimento: ${dataParcela}</div>`;
             }
+            preview.innerHTML = html;
         }
+    }
 
-        valorInput.addEventListener("input", atualizarPreviewParcelas);
-        parcelasInput.addEventListener("input", atualizarPreviewParcelas);
-    });
+    valorInput.addEventListener("input", atualizarPreviewParcelas);
+    parcelasInput.addEventListener("input", atualizarPreviewParcelas);
+    dataInput.addEventListener("change", atualizarPreviewParcelas);
+});
 </script>
 {% endblock %}
