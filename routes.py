@@ -337,7 +337,7 @@ def nova_transacao():
     if request.method == 'POST':
         try:
             descricao = request.form['descricao']
-            valor_total = Decimal(request.form['valor'])
+            valor_parcela = Decimal(request.form['valor'])  # agora representa o valor de cada parcela
             tipo = request.form['tipo']
             data_primeira = datetime.strptime(request.form['data'], '%Y-%m-%d').date()
             data_vencimento_primeira = None
@@ -349,23 +349,16 @@ def nova_transacao():
             categoria_id = int(request.form['categoria_id'])
             qtd_parcelas = int(request.form.get('parcelas', 1))
 
-            valor_parcela = (valor_total / qtd_parcelas).quantize(Decimal('0.01'))
-            valor_ajustado_total = valor_parcela * qtd_parcelas
-            diferenca = valor_total - valor_ajustado_total
-
             for i in range(qtd_parcelas):
-                valor = valor_parcela
-                if i == qtd_parcelas - 1:
-                    valor += diferenca
-
                 data_parcela = data_primeira + relativedelta(months=i)
                 data_vencimento_parcela = None
                 if data_vencimento_primeira:
+                    # Mantém o mesmo dia, só mudando o mês
                     data_vencimento_parcela = data_vencimento_primeira + relativedelta(months=i)
 
                 transacao = Transacao(
                     descricao=f"{descricao} ({i+1}/{qtd_parcelas})" if qtd_parcelas > 1 else descricao,
-                    valor=valor,
+                    valor=valor_parcela,
                     tipo=tipo,
                     data=data_parcela,
                     data_vencimento=data_vencimento_parcela,
@@ -380,9 +373,9 @@ def nova_transacao():
                 if transacao.paga:
                     conta = Conta.query.get(conta_id)
                     if tipo == 'receita':
-                        conta.saldo_atual += valor
+                        conta.saldo_atual += valor_parcela
                     else:
-                        conta.saldo_atual -= valor
+                        conta.saldo_atual -= valor_parcela
 
             db.session.commit()
             flash('Transação criada com sucesso!', 'success')
