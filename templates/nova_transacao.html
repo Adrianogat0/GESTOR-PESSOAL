@@ -90,9 +90,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function adicionarMesComMesmoDia(dataStr, incremento) {
         const [ano, mes, dia] = dataStr.split("-").map(Number);
-        const base = new Date(ano, mes - 1 + incremento, 1); // Primeiro dia do mês alvo
+        const base = new Date(ano, mes - 1 + incremento, 1);
         const ultimoDia = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
-        const diaCorreto = Math.min(dia, ultimoDia); // Evita passar do fim do mês
+        const diaCorreto = Math.min(dia, ultimoDia);
         base.setDate(diaCorreto);
         return base.toLocaleDateString("pt-BR");
     }
@@ -101,14 +101,17 @@ document.addEventListener("DOMContentLoaded", function () {
         const valor = parseFloat(valorInput.value) || 0;
         const parcelas = parseInt(parcelasInput.value) || 1;
         const dataBase = dataInput.value;
+
         preview.innerHTML = "";
 
-        if (parcelas > 1 && valor > 0 && dataBase) {
+        if (parcelas >= 1 && valor > 0 && dataBase) {
             let html = "";
             for (let i = 0; i < parcelas; i++) {
                 const dataParcela = adicionarMesComMesmoDia(dataBase, i);
                 html += `<div>Parcela ${i + 1}: R$ ${valor.toFixed(2)} - Vencimento: ${dataParcela}</div>`;
             }
+            const total = valor * parcelas;
+            html += `<strong>Total final: R$ ${total.toFixed(2)}</strong>`;
             preview.innerHTML = html;
         }
     }
@@ -119,3 +122,4 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 {% endblock %}
+
