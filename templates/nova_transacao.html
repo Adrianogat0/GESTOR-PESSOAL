@@ -88,22 +88,25 @@ document.addEventListener("DOMContentLoaded", function () {
     const dataInput = document.getElementById("data_vencimento");
     const preview = document.getElementById("parcelas-preview");
 
-    function adicionarMes(data, meses) {
-        const novaData = new Date(data);
-        novaData.setMonth(novaData.getMonth() + meses);
-        return novaData.toLocaleDateString('pt-BR');
+    function adicionarMesComMesmoDia(dataStr, incremento) {
+        const [ano, mes, dia] = dataStr.split("-").map(Number);
+        const base = new Date(ano, mes - 1 + incremento, 1); // Primeiro dia do mês alvo
+        const ultimoDia = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+        const diaCorreto = Math.min(dia, ultimoDia); // Evita passar do fim do mês
+        base.setDate(diaCorreto);
+        return base.toLocaleDateString("pt-BR");
     }
 
     function atualizarPreviewParcelas() {
         const valor = parseFloat(valorInput.value) || 0;
         const parcelas = parseInt(parcelasInput.value) || 1;
-        const dataBase = new Date(dataInput.value);
+        const dataBase = dataInput.value;
         preview.innerHTML = "";
 
-        if (parcelas > 1 && valor > 0 && dataInput.value) {
+        if (parcelas > 1 && valor > 0 && dataBase) {
             let html = "";
             for (let i = 0; i < parcelas; i++) {
-                const dataParcela = adicionarMes(dataBase, i);
+                const dataParcela = adicionarMesComMesmoDia(dataBase, i);
                 html += `<div>Parcela ${i + 1}: R$ ${valor.toFixed(2)} - Vencimento: ${dataParcela}</div>`;
             }
             preview.innerHTML = html;
