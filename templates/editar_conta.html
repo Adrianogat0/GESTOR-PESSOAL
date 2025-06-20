@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Editar Conta - Meu Financeiro{% endblock %}
+{% block page_title %}Editar Conta{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-edit"></i> Editar Conta</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" novalidate>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="nome" class="form-label">Nome da Conta</label>
+                    <input type="text" class="form-control" id="nome" name="nome" value="{{ conta.nome }}" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="tipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="tipo" name="tipo" required>
+                        <option value="">Selecione...</option>
+                        <option value="conta_corrente" {% if conta.tipo == 'conta_corrente' %}selected{% endif %}>Conta Corrente</option>
+                        <option value="conta_poupanca" {% if conta.tipo == 'conta_poupanca' %}selected{% endif %}>Conta Poupança</option>
+                        <option value="cartao_credito" {% if conta.tipo == 'cartao_credito' %}selected{% endif %}>Cartão de Crédito</option>
+                        <option value="investimento" {% if conta.tipo == 'investimento' %}selected{% endif %}>Investimento</option>
+                        <option value="dinheiro" {% if conta.tipo == 'dinheiro' %}selected{% endif %}>Dinheiro</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="saldo_inicial" class="form-label">Saldo Inicial</label>
+                    <input type="number" class="form-control" id="saldo_inicial" name="saldo_inicial" step="0.01" value="{{ conta.saldo_inicial }}">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="banco" class="form-label">Banco</label>
+                    <input type="text" class="form-control" id="banco" name="banco" value="{{ conta.banco }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="cor" class="form-label">Cor</label>
+                    <input type="color" class="form-control form-control-color" id="cor" name="cor" value="{{ conta.cor }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="icone" class="form-label">Ícone</label>
+                    <select class="form-select" id="icone" name="icone">
+                        <option value="🏦" {% if conta.icone == '🏦' %}selected{% endif %}>🏦 Banco</option>
+                        <option value="💳" {% if conta.icone == '💳' %}selected{% endif %}>💳 Cartão</option>
+                        <option value="💰" {% if conta.icone == '💰' %}selected{% endif %}>💰 Dinheiro</option>
+                        <option value="📈" {% if conta.icone == '📈' %}selected{% endif %}>📈 Investimento</option>
+                        <option value="🏛️" {% if conta.icone == '🏛️' %}selected{% endif %}>🏛️ Instituição</option>
+                        <option value="💼" {% if conta.icone == '💼' %}selected{% endif %}>💼 Negócios</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Atualizar
+                </button>
+                <a href="{{ url_for('contas') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
