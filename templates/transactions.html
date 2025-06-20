@@ -8,146 +8,76 @@
 
 <!-- Action Bar -->
 <div class="action-bar mb-4">
-    <div class="row align-items-center">
-        <div class="col-md-8">
-            <form method="GET" class="row g-3">
-                <div class="col-md-2">
-                    <select name="tipo" class="form-select">
-                        <option value="">Todos os tipos</option>
-                        <option value="receita" {% if tipo_filtro == 'receita' %}selected{% endif %}>Receitas</option>
-                        <option value="despesa" {% if tipo_filtro == 'despesa' %}selected{% endif %}>Despesas</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select name="categoria" class="form-select">
-                        <option value="">Todas as categorias</option>
-                        {% for categoria in categorias %}
-                        <option value="{{ categoria.id }}" {% if categoria_filtro == categoria.id %}selected{% endif %}>
-                            {{ categoria.icone }} {{ categoria.nome }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select name="conta" class="form-select">
-                        <option value="">Todas as contas</option>
-                        {% for conta in contas %}
-                        <option value="{{ conta.id }}" {% if conta_filtro == conta.id %}selected{% endif %}>
-                            {{ conta.icone }} {{ conta.nome }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}" placeholder="Data início">
-                </div>
-                <div class="col-md-2">
-                    <input type="date" name="data_fim" class="form-control" value="{{ data_fim }}" placeholder="Data fim">
-                </div>
-                <div class="col-md-2">
-                    <input type="date" name="venc_inicio" class="form-control" value="{{ venc_inicio }}" placeholder="Venc. início">
-                </div>
-                <div class="col-md-2">
-                    <input type="date" name="venc_fim" class="form-control" value="{{ venc_fim }}" placeholder="Venc. fim">
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-outline-primary w-100">
-                        <i class="fas fa-search"></i> Filtrar
-                    </button>
-                </div>
-            </form>
+    <form method="GET" id="filtroForm" onsubmit="return true;">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="descricao" class="form-label mb-0">Descrição</label>
+                <input type="text" name="descricao" id="descricao" class="form-control" value="{{ descricao_filtro or '' }}" placeholder="Buscar por descrição">
+            </div>
+            <div class="col-md-3">
+                <label for="tipo" class="form-label mb-0">Tipo</label>
+                <select name="tipo" id="tipo" class="form-select">
+                    <option value="">Todos os tipos</option>
+                    <option value="receita" {% if tipo_filtro == 'receita' %}selected{% endif %}>Receitas</option>
+                    <option value="despesa" {% if tipo_filtro == 'despesa' %}selected{% endif %}>Despesas</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="categoria" class="form-label mb-0">Categoria</label>
+                <select name="categoria" id="categoria" class="form-select">
+                    <option value="">Todas as categorias</option>
+                    {% for categoria in categorias %}
+                    <option value="{{ categoria.id }}" {% if categoria_filtro == categoria.id %}selected{% endif %}>
+                        {{ categoria.icone }} {{ categoria.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="conta" class="form-label mb-0">Conta</label>
+                <select name="conta" id="conta" class="form-select">
+                    <option value="">Todas as contas</option>
+                    {% for conta in contas %}
+                    <option value="{{ conta.id }}" {% if conta_filtro == conta.id %}selected{% endif %}>
+                        {{ conta.icone }} {{ conta.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label for="data_inicio" class="form-label mb-0">Data início</label>
+                <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="{{ data_inicio }}">
+            </div>
+            <div class="col-md-3">
+                <label for="data_fim" class="form-label mb-0">Data fim</label>
+                <input type="date" name="data_fim" id="data_fim" class="form-control" value="{{ data_fim }}">
+            </div>
+            <div class="col-md-3">
+                <label for="venc_inicio" class="form-label mb-0">Venc. início</label>
+                <input type="date" name="venc_inicio" id="venc_inicio" class="form-control" value="{{ venc_inicio }}">
+            </div>
+            <div class="col-md-3">
+                <label for="venc_fim" class="form-label mb-0">Venc. fim</label>
+                <input type="date" name="venc_fim" id="venc_fim" class="form-control" value="{{ venc_fim }}">
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+            </div>
         </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ url_for('nova_transacao') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Nova Transação
-            </a>
-        </div>
-    </div>
+    </form>
 </div>
 
-{% if nova_transacao %}
-<!-- New Transaction Form -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-plus"></i> Nova Transação</h5>
-    </div>
-    <div class="card-body">
-        <form method="POST">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="descricao" class="form-label">Descrição</label>
-                    <input type="text" class="form-control" id="descricao" name="descricao" required>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <label for="valor" class="form-label">Valor total</label>
-                    <input type="number" step="0.01" class="form-control" id="valor" name="valor" required>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <label for="tipo" class="form-label">Tipo</label>
-                    <select class="form-select" id="tipo" name="tipo" required>
-                        <option value="receita">Receita</option>
-                        <option value="despesa">Despesa</option>
-                    </select>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label for="data" class="form-label">Data da transação</label>
-                    <input type="date" class="form-control" id="data" name="data" required>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label for="data_vencimento" class="form-label">Data de vencimento (opcional)</label>
-                    <input type="date" class="form-control" id="data_vencimento" name="data_vencimento">
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label for="parcelas" class="form-label">Número de parcelas</label>
-                    <input type="number" class="form-control" id="parcelas" name="parcelas" min="1" value="1" required>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="conta_id" class="form-label">Conta</label>
-                    <select class="form-select" id="conta_id" name="conta_id" required>
-                        {% for conta in contas %}
-                        <option value="{{ conta.id }}">{{ conta.icone }} {{ conta.nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="categoria_id" class="form-label">Categoria</label>
-                    <select class="form-select" id="categoria_id" name="categoria_id" required>
-                        {% for categoria in categorias %}
-                        <option value="{{ categoria.id }}">{{ categoria.icone }} {{ categoria.nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-9 mb-3">
-                    <label for="observacoes" class="form-label">Observações</label>
-                    <textarea class="form-control" id="observacoes" name="observacoes" rows="2"></textarea>
-                </div>
-                <div class="col-md-3 mb-3 d-flex align-items-end">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="paga" name="paga">
-                        <label class="form-check-label" for="paga">
-                            Transação já paga
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Salvar
-                </button>
-                <a href="{{ url_for('transacoes') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times"></i> Cancelar
-                </a>
-            </div>
-        </form>
-    </div>
-</div>
-{% endif %}
+<script>
+    const form = document.getElementById('filtroForm');
+    form.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', e => e.stopPropagation(), true);
+        el.addEventListener('change', e => e.stopPropagation(), true);
+    });
+</script>
 
 <!-- Summary Card -->
 {% if transacoes and transacoes.items %}
@@ -279,58 +209,56 @@
                 </tbody>
             </table>
         </div>
+
         <!-- Pagination -->
         {% if transacoes.pages > 1 %}
-<div class="d-flex justify-content-center mt-3">
-    <nav>
-        <ul class="pagination">
-            {% if transacoes.has_prev %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('transacoes', page=transacoes.prev_num,
-                    tipo=tipo_filtro, categoria=categoria_filtro, conta=conta_filtro,
-                    data_inicio=data_inicio, data_fim=data_fim,
-                    venc_inicio=venc_inicio, venc_fim=venc_fim) }}">Anterior</a>
-            </li>
-            {% endif %}
-            {% for page_num in transacoes.iter_pages() %}
-                {% if page_num %}
-                    {% if page_num != transacoes.page %}
+        <div class="d-flex justify-content-center mt-3">
+            <nav>
+                <ul class="pagination">
+                    {% if transacoes.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('transacoes', page=page_num,
+                        <a class="page-link" href="{{ url_for('transacoes', page=transacoes.prev_num,
                             tipo=tipo_filtro, categoria=categoria_filtro, conta=conta_filtro,
                             data_inicio=data_inicio, data_fim=data_fim,
-                            venc_inicio=venc_inicio, venc_fim=venc_fim) }}">{{ page_num }}</a>
-                    </li>
-                    {% else %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ page_num }}</span>
+                            venc_inicio=venc_inicio, venc_fim=venc_fim) }}">Anterior</a>
                     </li>
                     {% endif %}
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
-                {% endif %}
-            {% endfor %}
-            {% if transacoes.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('transacoes', page=transacoes.next_num,
-                    tipo=tipo_filtro, categoria=categoria_filtro, conta=conta_filtro,
-                    data_inicio=data_inicio, data_fim=data_fim,
-                    venc_inicio=venc_inicio, venc_fim=venc_fim) }}">Próximo</a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-</div>
-{% endif %}
+                    {% for page_num in transacoes.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != transacoes.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('transacoes', page=page_num,
+                                    tipo=tipo_filtro, categoria=categoria_filtro, conta=conta_filtro,
+                                    data_inicio=data_inicio, data_fim=data_fim,
+                                    venc_inicio=venc_inicio, venc_fim=venc_fim) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if transacoes.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('transacoes', page=transacoes.next_num,
+                            tipo=tipo_filtro, categoria=categoria_filtro, conta=conta_filtro,
+                            data_inicio=data_inicio, data_fim=data_fim,
+                            venc_inicio=venc_inicio, venc_fim=venc_fim) }}">Próximo</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
         {% else %}
         <div class="empty-state">
             <i class="fas fa-inbox"></i>
             <p>Nenhuma transação encontrada</p>
-            <a href="{{ url_for('nova_transacao') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Adicionar Primeira Transação
-            </a>
         </div>
         {% endif %}
     </div>
