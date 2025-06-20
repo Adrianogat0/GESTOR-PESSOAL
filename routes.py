@@ -261,7 +261,8 @@ def transacoes():
     data_fim = request.args.get('data_fim', '')
     venc_inicio = request.args.get('venc_inicio', '')
     venc_fim = request.args.get('venc_fim', '')
-    
+    descricao_filtro = request.args.get('descricao', '').strip()  # Novo filtro
+
     # Filtrar transações do usuário E não pagas
     query = Transacao.query.filter(
         Transacao.usuario_id == usuario.id,
@@ -283,6 +284,8 @@ def transacoes():
         query = query.filter(Transacao.data_vencimento >= datetime.strptime(venc_inicio, '%Y-%m-%d').date())
     if venc_fim:
         query = query.filter(Transacao.data_vencimento <= datetime.strptime(venc_fim, '%Y-%m-%d').date())
+    if descricao_filtro:
+        query = query.filter(Transacao.descricao.ilike(f"%{descricao_filtro}%"))  # Filtro por descrição
     
     # Calcular totais somente para as transações não pagas (filtradas)
     filtered_transacoes = query.all()
@@ -313,6 +316,7 @@ def transacoes():
                          data_fim=data_fim,
                          venc_inicio=venc_inicio,
                          venc_fim=venc_fim,
+                         descricao_filtro=descricao_filtro,  # Passar para o template
                          total_receitas=total_receitas,
                          total_despesas=total_despesas,
                          total_saldo=total_saldo,
@@ -327,9 +331,9 @@ def nova_transacao():
     auth_check = require_auth()
     if auth_check:
         return auth_check
-    
+
     usuario = get_current_user()
-    
+
     if request.method == 'POST':
         try:
             descricao = request.form['descricao']
@@ -343,29 +347,29 @@ def nova_transacao():
             observacoes = request.form.get('observacoes', '')
             conta_id = int(request.form['conta_id'])
             categoria_id = int(request.form['categoria_id'])
-            qtd_parcelas = int(request.form.get('parcelas', 1))  # NOVO CAMPO: número de parcelas, default = 1
+            qtd_parcelas = int(request.form.get('parcelas', 1))
 
             valor_parcela = (valor_total / qtd_parcelas).quantize(Decimal('0.01'))
             valor_ajustado_total = valor_parcela * qtd_parcelas
-            diferenca = valor_total - valor_ajustado_total  # para ajuste da última parcela
+            diferenca = valor_total - valor_ajustado_total
 
             for i in range(qtd_parcelas):
                 valor = valor_parcela
                 if i == qtd_parcelas - 1:
-                    valor += diferenca  # ajusta última parcela para bater o total exato
-                
+                    valor += diferenca
+
                 data_parcela = data_primeira + relativedelta(months=i)
                 data_vencimento_parcela = None
                 if data_vencimento_primeira:
                     data_vencimento_parcela = data_vencimento_primeira + relativedelta(months=i)
-                
+
                 transacao = Transacao(
-                    descricao=f"{descricao} ({i+1}/{qtd_parcelas})",
+                    descricao=f"{descricao} ({i+1}/{qtd_parcelas})" if qtd_parcelas > 1 else descricao,
                     valor=valor,
                     tipo=tipo,
                     data=data_parcela,
                     data_vencimento=data_vencimento_parcela,
-                    paga=paga if qtd_parcelas == 1 else False,  # se parcelado, parcelas começam como não pagas
+                    paga=paga if qtd_parcelas == 1 else False,
                     observacoes=observacoes,
                     usuario_id=usuario.id,
                     conta_id=conta_id,
@@ -373,30 +377,29 @@ def nova_transacao():
                 )
                 db.session.add(transacao)
 
-                # Atualiza saldo da conta apenas se transação única e paga
                 if transacao.paga:
                     conta = Conta.query.get(conta_id)
                     if tipo == 'receita':
                         conta.saldo_atual += valor
                     else:
                         conta.saldo_atual -= valor
-            
+
             db.session.commit()
-            flash(f'Transação{" parcelada" if qtd_parcelas > 1 else ""} criada com sucesso!', 'success')
+            flash('Transação criada com sucesso!', 'success')
             return redirect(url_for('transacoes'))
-        
+
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao criar transação: {str(e)}', 'danger')
-    
-    categorias = Categoria.query.filter(Categoria.usuario_id == usuario.id, Categoria.ativa == True).all()
-    contas = Conta.query.filter(Conta.usuario_id == usuario.id, Conta.ativa == True).all()
-    
-    return render_template('transactions.html', 
-                         categorias=categorias,
-                         contas=contas,
-                         nova_transacao=True,
-                         transacoes=None)
+
+    categorias = Categoria.query.filter_by(usuario_id=usuario.id, ativa=True).all()
+    contas = Conta.query.filter_by(usuario_id=usuario.id, ativa=True).all()
+
+    return render_template(
+        'nova_transacao.html',
+        categorias=categorias,
+        contas=contas
+    )
 
 @app.route('/transacoes/<int:id>/pagar', methods=['POST'])
 def pagar_transacao(id):
@@ -834,3 +837,34 @@ def nova_movimentacao():
     categorias = Categoria.query.filter_by(usuario_id=usuario.id).all()
     contas = Conta.query.filter_by(usuario_id=usuario.id).all()
     return render_template('nova_movimentacao.html', categorias=categorias, contas=contas)
+
+from flask import request, redirect, url_for, render_template, flash
+
+@app.route('/contas/editar/<int:conta_id>', methods=['GET', 'POST'])
+def editar_conta(conta_id):
+    conta = Conta.query.get_or_404(conta_id)  # Busca a conta ou retorna 404 se não achar
+
+    if request.method == 'POST':
+        # Atualiza os dados da conta com o que veio do formulário
+        conta.nome = request.form['nome']
+        conta.tipo = request.form['tipo']
+        conta.saldo_inicial = float(request.form['saldo_inicial'])
+        conta.banco = request.form.get('banco')
+        conta.cor = request.form.get('cor')
+        conta.icone = request.form.get('icone')
+
+        db.session.commit()  # Salva no banco
+
+        flash('Conta atualizada com sucesso!', 'success')
+        return redirect(url_for('contas'))
+
+    # Se GET, mostra o formulário preenchido
+    return render_template('editar_conta.html', conta=conta)
+
+@app.route('/contas/excluir/<int:conta_id>', methods=['POST'])
+def excluir_conta(conta_id):
+    conta = Conta.query.get_or_404(conta_id)
+    db.session.delete(conta)
+    db.session.commit()
+    flash('Conta excluída com sucesso!', 'success')
+    return redirect(url_for('contas'))
