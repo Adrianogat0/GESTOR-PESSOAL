@@ -124,12 +124,14 @@
                             Criada em {{ conta.created_at.strftime('%d/%m/%Y') }}
                         </small>
                         <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-outline-primary btn-sm" title="Editar">
+                            <a href="{{ url_for('editar_conta', conta_id=conta.id) }}" class="btn btn-outline-primary btn-sm" title="Editar">
                                 <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-danger btn-sm" title="Excluir">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            </a>
+                            <form method="POST" action="{{ url_for('excluir_conta', conta_id=conta.id) }}" style="display:inline;" onsubmit="return confirm('Confirma exclusão da conta {{ conta.nome }}?');">
+                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
