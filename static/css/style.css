@@ -7,9 +7,9 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f8f9fa;
     color: #333;
     line-height: 1.6;
+    background-color: transparent; /* REMOVIDO fundo branco padrão */
 }
 
 /* Layout Styles */
@@ -18,9 +18,10 @@ body {
     min-height: 100vh;
 }
 
+/* 🔥 Gradiente roxo aplicado apenas na área de login/cadastro */
 .auth-layout {
     min-height: 100vh;
-    background: linear-gradient(135deg, #6a0dad 0%, #9b59b6 100%);
+    background: linear-gradient(to bottom, #3f0056, #4b0082); /* ROXO GRADIENTE DA IMAGEM */
     display: flex;
     align-items: center;
     justify-content: center;
