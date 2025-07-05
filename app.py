@@ -11,6 +11,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+# Corrige o prefixo do banco, caso necessário
 database_url = os.environ.get("DATABASE_URL", "sqlite:///financeiro.db")
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -25,9 +26,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
 with app.app_context():
-    import models  # Importa seus modelos aqui
-    import routes  # Importa suas rotas aqui
-    db.create_all()  # Cria as tabelas do banco (se ainda não existirem)
+    from models import *  # Garante que os modelos sejam registrados
+    from routes import *  # Garante que as rotas sejam carregadas
+    db.create_all()       # Cria as tabelas no banco, se ainda não existirem
 
 if __name__ == "__main__":
     app.run(debug=True)
